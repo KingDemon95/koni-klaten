@@ -218,10 +218,13 @@
             <input
                 type="email"
                 name="email"
+                required
                 value="{{ old('email', $pelatih->email) }}"
                 placeholder="email@contoh.com"
                 class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-red-500"
             >
+            <p class="mt-1 text-xs text-gray-500">Email ini menjadi alamat login. Akun dibuat otomatis saat data disimpan.</p>
+            @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
 
         </div>
 

@@ -11,6 +11,7 @@ class Pengurus extends Model
 
     protected $fillable = [
         'cabang_olahraga_id',
+        'user_id',
         'nama_lengkap',
         'jabatan',
         'bidang',
@@ -31,6 +32,11 @@ class Pengurus extends Model
             'periode_selesai' => 'integer',
             'urutan' => 'integer',
         ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function cabangOlahraga(): BelongsTo

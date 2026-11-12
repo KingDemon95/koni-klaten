@@ -12,6 +12,8 @@
 
 <body class="min-h-screen bg-[#F4F5F7] text-gray-900">
 
+
+<a href="#konten-utama" class="koni-skip-link">Langsung ke konten utama</a>
 <div class="min-h-screen lg:flex">
 
     <!-- SIDEBAR DESKTOP -->
@@ -75,6 +77,9 @@
                 Profil Saya
             </a>
 
+            <a href="{{ route('atlet.prestasi.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('atlet.prestasi.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Prestasi Saya</a>
+            <a href="{{ route('atlet.izin-latihan.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('atlet.izin-latihan.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Izin Latihan</a>
+            <a href="{{ route('atlet.templates.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('atlet.templates.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Template Surat Izin</a>
         </nav>
 
         <div class="border-t border-white/10 p-5">
@@ -113,6 +118,9 @@
                         <a href="{{ route('atlet.profil') }}">
                             Profil Saya
                         </a>
+                        <a href="{{ route('atlet.prestasi.index') }}">Prestasi Saya</a>
+                        <a href="{{ route('atlet.izin-latihan.index') }}">Izin Latihan</a>
+                        <a href="{{ route('atlet.templates.index') }}">Template Surat Izin</a>
 
                     </nav>
 
@@ -133,6 +141,8 @@
 
             <!-- AKUN -->
             <div class="flex items-center gap-3">
+
+                @include('partials.notification-link')
 
                 <div class="hidden text-right sm:block">
 
@@ -165,7 +175,8 @@
 
         </header>
 
-        <main class="p-4 sm:p-6 lg:p-8">
+        <main id="konten-utama" tabindex="-1" class="p-4 sm:p-6 lg:p-8">
+            @include('partials.demo-feedback')
             @yield('content')
         </main>
 

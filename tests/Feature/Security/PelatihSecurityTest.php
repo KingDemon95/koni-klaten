@@ -163,6 +163,9 @@ class PelatihSecurityTest extends TestCase
             'dashboard.admin-cabor',
             'dashboard.staff-koni',
             'dashboard.atlet',
+            'atlet.prestasi.index',
+            'atlet.izin-latihan.index',
+            'atlet.templates.index',
         ];
 
         foreach ($routes as $routeName) {
@@ -191,24 +194,28 @@ class PelatihSecurityTest extends TestCase
     }
 
     /**
-     * Portal Pelatih tidak menyediakan endpoint perubahan data.
+     * Route tulis Pelatih hanya tersedia untuk biodata, prestasi, dan dokumen izin latihan miliknya.
      */
-    public function test_pelatih_routes_do_not_allow_write_methods(): void
+    public function test_pelatih_write_routes_are_limited_to_own_portal_features(): void
     {
-        $data = $this->createPelatihAccount(
-            'Pelatih Readonly',
-            'pelatih-readonly@example.com'
-        );
+        $writeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+        $allowedNames = [
+            'pelatih.profil.update',
+            'pelatih.prestasi.store',
+            'pelatih.prestasi.update',
+            'pelatih.prestasi.destroy',
+            'pelatih.izin-latihan.store',
+            'pelatih.izin-latihan.destroy',
+        ];
 
-        $this->actingAs($data['user']);
+        $writeRoutes = collect(\Illuminate\Support\Facades\Route::getRoutes()->getRoutes())
+            ->filter(fn ($route) => str_starts_with($route->uri(), 'pelatih/'))
+            ->filter(fn ($route) => count(array_intersect($route->methods(), $writeMethods)) > 0);
 
-        $this->post(route('pelatih.profil'))
-            ->assertStatus(405);
+        $actualNames = $writeRoutes->values()->map(fn ($route) => $route->getName())->all();
 
-        $this->put(route('pelatih.profil'))
-            ->assertStatus(405);
-
-        $this->delete(route('pelatih.profil'))
-            ->assertStatus(405);
+        $this->assertNotEmpty($actualNames);
+        $this->assertEqualsCanonicalizing($allowedNames, $actualNames);
     }
+
 }

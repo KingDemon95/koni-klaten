@@ -11,6 +11,8 @@
 
 <body class="min-h-screen bg-[#F4F5F7] text-gray-900">
 
+
+<a href="#konten-utama" class="koni-skip-link">Langsung ke konten utama</a>
 <div class="min-h-screen lg:flex">
 
     <!-- SIDEBAR DESKTOP -->
@@ -59,6 +61,12 @@
                 Dashboard
             </a>
 
+            <a href="{{ route('staff.laporan.index') }}"
+               class="block rounded-xl px-4 py-3 text-sm font-semibold
+               {{ request()->routeIs('staff.laporan.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">
+                Laporan & Rekapitulasi
+            </a>
+
             @foreach([
                 'cabor' => 'Cabang Olahraga',
                 'atlet' => 'Data Atlet',
@@ -78,6 +86,30 @@
 
             @endforeach
 
+            <a href="{{ route('staff.agenda.index') }}"
+               class="block rounded-xl px-4 py-3 text-sm font-semibold
+               {{ request()->routeIs('staff.agenda.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">
+                Agenda & Kejuaraan
+            </a>
+
+            <a href="{{ route('staff.surat.index') }}"
+               class="block rounded-xl px-4 py-3 text-sm font-semibold
+               {{ request()->routeIs('staff.surat.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">
+                Persuratan
+            </a>
+
+            <a href="{{ route('staff.templates.index') }}"
+               class="block rounded-xl px-4 py-3 text-sm font-semibold
+               {{ request()->routeIs('staff.templates.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">
+                Template Surat
+            </a>
+
+            <a href="{{ route('staff.publikasi.index') }}"
+               class="block rounded-xl px-4 py-3 text-sm font-semibold
+               {{ request()->routeIs('staff.publikasi.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">
+                Dokumentasi & Publikasi
+            </a>
+
         </nav>
 
         <div class="border-t border-white/10 p-5">
@@ -91,7 +123,7 @@
             </p>
 
             <p class="mt-2 text-[10px] text-gray-500">
-                AKSES BACA SAJA
+                PENGELOLAAN DATA & PUBLIKASI AGENDA
             </p>
 
         </div>
@@ -120,6 +152,10 @@
                             Dashboard
                         </a>
 
+                        <a href="{{ route('staff.laporan.index') }}">
+                            Laporan & Rekapitulasi
+                        </a>
+
                         <a href="{{ route('staff.cabor.index') }}">
                             Cabang Olahraga
                         </a>
@@ -135,6 +171,12 @@
                         <a href="{{ route('staff.pengurus.index') }}">
                             Struktur Organisasi
                         </a>
+                        <a href="{{ route('staff.agenda.index') }}">
+                            Agenda & Kejuaraan
+                        </a>
+                        <a href="{{ route('staff.surat.index') }}">Persuratan</a>
+                        <a href="{{ route('staff.templates.index') }}">Template Surat</a>
+                        <a href="{{ route('staff.publikasi.index') }}">Dokumentasi & Publikasi</a>
 
                     </nav>
 
@@ -157,6 +199,8 @@
 
             <!-- PROFILE -->
             <div class="flex items-center gap-3">
+
+                @include('partials.notification-link')
 
                 <div class="hidden text-right sm:block">
 
@@ -190,7 +234,8 @@
 
         </header>
 
-        <main class="p-4 sm:p-6 lg:p-8">
+        <main id="konten-utama" tabindex="-1" class="p-4 sm:p-6 lg:p-8">
+            @include('partials.demo-feedback')
             @yield('content')
         </main>
 

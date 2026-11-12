@@ -40,7 +40,7 @@
         </p>
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
 
         @foreach($stats as $stat)
 
@@ -56,7 +56,7 @@
                 </h4>
 
                 <p class="mt-3 text-xs font-semibold text-green-600">
-                    {{ $stat['aktif'] }} aktif
+                    {{ $stat['aktif'] }} {{ $stat['aktif_label'] ?? 'aktif' }}
                 </p>
 
                 <p class="mt-4 text-xs font-bold text-[#E60012]">
@@ -81,21 +81,20 @@
 
     <p class="mt-3 text-sm leading-relaxed text-gray-600">
         Anda dapat melihat rekap cabang olahraga, data atlet,
-        data pelatih, serta struktur organisasi yang tercatat
-        dalam sistem KONI Kabupaten Klaten.
+        data pelatih, serta struktur organisasi. Staff KONI juga dapat
+        mengelola seluruh agenda dan kejuaraan serta langsung mempublikasikannya.
     </p>
 
     <div class="mt-5 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
 
         <p class="text-sm font-bold text-yellow-800">
-            Mode Baca Saja
+            Hak Pengelolaan Agenda
         </p>
 
         <p class="mt-2 text-xs leading-relaxed text-yellow-700">
-            Akses Staff KONI saat ini hanya untuk melihat data.
-            Penambahan, perubahan, penghapusan, dan manajemen
-            akun pengguna hanya dapat dilakukan melalui
-            role yang memiliki izin khusus.
+            Staff KONI dapat membuat, mengubah, menghapus, meninjau pengajuan,
+            meminta revisi, dan langsung mempublikasikan agenda serta kejuaraan.
+            Pengelolaan akun dan data master tetap mengikuti kewenangan masing-masing role.
         </p>
 
     </div>

@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Cabor;
 
 use App\Http\Controllers\Controller;
+use App\Support\AccountProvisioner;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use RuntimeException;
@@ -26,8 +28,13 @@ abstract class CaborProfileController extends Controller
         return [];
     }
 
-    protected function rules(): array
+    protected function rules(?Model $item = null): array
     {
+        $emailUnique = Rule::unique('users', 'email');
+        if ($item?->user_id) {
+            $emailUnique->ignore($item->user_id);
+        }
+
         return array_merge([
             'nama_lengkap' => [
                 'required', 'string', 'max:150',
@@ -48,7 +55,10 @@ abstract class CaborProfileController extends Controller
                 'nullable', 'string', 'max:30',
             ],
             'email' => [
-                'nullable', 'email', 'max:255',
+                'required',
+                'email',
+                'max:255',
+                $emailUnique,
             ],
             'status' => [
                 'required', Rule::in(['aktif', 'nonaktif']),
@@ -110,29 +120,35 @@ abstract class CaborProfileController extends Controller
         // dari request pengguna.
         unset($data['foto']);
 
-        $data['cabang_olahraga_id'] =
-            $request->user()->cabang_olahraga_id;
-
+        $data['cabang_olahraga_id'] = $request->user()->cabang_olahraga_id;
         $newPath = null;
 
         try {
             if ($request->hasFile('foto')) {
-                $newPath = $request->file('foto')
-                    ->store($this->jenis(), 'public');
+                $newPath = $request->file('foto')->store($this->jenis(), 'public');
 
                 if ($newPath === false) {
-                    throw new RuntimeException(
-                        'Foto gagal disimpan.'
-                    );
+                    throw new RuntimeException('Foto gagal disimpan.');
                 }
 
                 $data['foto_path'] = $newPath;
             }
 
-            $class::create($data);
+            DB::transaction(function () use ($class, $data, &$item) {
+                $item = $class::create($data);
 
+                $user = AccountProvisioner::create(
+                    $item->nama_lengkap,
+                    $item->email,
+                    $this->jenis(),
+                    null,
+                    $item->status === 'aktif',
+                );
+
+                $item->user()->associate($user);
+                $item->save();
+            });
         } catch (Throwable $exception) {
-
             if ($newPath) {
                 Storage::disk('public')->delete($newPath);
             }
@@ -140,9 +156,12 @@ abstract class CaborProfileController extends Controller
             throw $exception;
         }
 
+        $role = $this->jenis();
+        $password = config("account_defaults.passwords.{$role}");
+
         return redirect()
             ->route($this->indexRoute())
-            ->with('success', 'Data berhasil ditambahkan.');
+            ->with('success', 'Data '.$role.' dan akun login berhasil dibuat. Login: '.$data['email'].'. Password awal: '.$password.'.');
     }
 
     public function edit(
@@ -168,10 +187,10 @@ abstract class CaborProfileController extends Controller
 
         Gate::authorize('update', $item);
 
-        $data = $request->validate($this->rules());
+        $hadAccount = $item->user_id !== null;
+        $data = $request->validate($this->rules($item));
 
-        // Tidak boleh mengubah user_id atau
-        // cabang_olahraga_id lewat form.
+        // Tidak boleh mengubah user_id atau cabang_olahraga_id lewat form.
         unset($data['foto']);
 
         $oldPath = $item->foto_path;
@@ -179,22 +198,39 @@ abstract class CaborProfileController extends Controller
 
         try {
             if ($request->hasFile('foto')) {
-                $newPath = $request->file('foto')
-                    ->store($this->jenis(), 'public');
+                $newPath = $request->file('foto')->store($this->jenis(), 'public');
 
                 if ($newPath === false) {
-                    throw new RuntimeException(
-                        'Foto gagal disimpan.'
-                    );
+                    throw new RuntimeException('Foto gagal disimpan.');
                 }
 
                 $data['foto_path'] = $newPath;
             }
 
-            $item->update($data);
+            DB::transaction(function () use ($item, $data) {
+                $item->update($data);
 
+                $user = $item->user;
+                if ($user) {
+                    $user->update([
+                        'name' => $item->nama_lengkap,
+                        'email' => mb_strtolower(trim($item->email)),
+                        'is_active' => $item->status === 'aktif',
+                    ]);
+                } else {
+                    $user = AccountProvisioner::create(
+                        $item->nama_lengkap,
+                        $item->email,
+                        $this->jenis(),
+                        null,
+                        $item->status === 'aktif',
+                    );
+
+                    $item->user()->associate($user);
+                    $item->save();
+                }
+            });
         } catch (Throwable $exception) {
-
             if ($newPath) {
                 Storage::disk('public')->delete($newPath);
             }
@@ -207,9 +243,14 @@ abstract class CaborProfileController extends Controller
             Storage::disk('public')->delete($oldPath);
         }
 
+        $role = $this->jenis();
+        $successMessage = $hadAccount
+            ? 'Data dan akun login berhasil diperbarui.'
+            : 'Data dan akun login berhasil dibuat. Login: '.$data['email'].'. Password awal: '.config("account_defaults.passwords.{$role}").'.';
+
         return redirect()
             ->route($this->indexRoute())
-            ->with('success', 'Data berhasil diperbarui.');
+            ->with('success', $successMessage);
     }
 
     public function destroy(
@@ -220,18 +261,11 @@ abstract class CaborProfileController extends Controller
 
         Gate::authorize('delete', $item);
 
-        // Lindungi profil yang sudah digunakan oleh akun.
-        if ($item->user_id !== null) {
-            return redirect()
-                ->route($this->indexRoute())
-                ->with(
-                    'error',
-                    'Data tidak dapat dihapus karena sudah terhubung dengan akun pengguna.'
-                );
-        }
-
         $oldPath = $item->foto_path;
 
+        // Akun tetap disimpan untuk jejak administrasi, tetapi dinonaktifkan
+        // agar tidak dapat login tanpa profil.
+        $item->user?->update(['is_active' => false]);
         $item->delete();
 
         if ($oldPath) {

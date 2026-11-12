@@ -52,7 +52,7 @@ class StaffSecurityTest extends TestCase
     }
 
     /**
-     * Staff dapat membuka seluruh halaman read-only.
+     * Staff dapat membuka data master read-only dan modul operasional yang dikelolanya.
      */
     public function test_staff_can_access_all_read_only_pages(): void
     {
@@ -66,6 +66,10 @@ class StaffSecurityTest extends TestCase
             'staff.atlet.index',
             'staff.pelatih.index',
             'staff.pengurus.index',
+            'staff.agenda.index',
+            'staff.surat.index',
+            'staff.templates.index',
+            'staff.publikasi.index',
         ];
 
         foreach ($routes as $routeName) {
@@ -88,6 +92,9 @@ class StaffSecurityTest extends TestCase
             'admin.cabor.index',
             'admin.atlet.index',
             'admin.pengguna.index',
+            'admin.agenda.index',
+            'admin.persuratan.index',
+            'admin.templates.index',
             'dashboard.admin-cabor',
         ];
 
@@ -123,12 +130,28 @@ class StaffSecurityTest extends TestCase
             $this->actingAs($user)
                 ->get(route('staff.cabor.index'))
                 ->assertForbidden();
+
+            $this->actingAs($user)
+                ->get(route('staff.agenda.index'))
+                ->assertForbidden();
+
+            $this->actingAs($user)
+                ->get(route('staff.surat.index'))
+                ->assertForbidden();
+
+            $this->actingAs($user)
+                ->get(route('staff.templates.index'))
+                ->assertForbidden();
+
+            $this->actingAs($user)
+                ->get(route('staff.publikasi.index'))
+                ->assertForbidden();
         }
     }
 
     /**
-     * Tidak boleh ada route POST, PUT, PATCH, DELETE
-     * pada prefix Staff.
+     * Data master Staff tetap read-only. Agenda, persuratan, template surat, dan publikasi
+     * dikecualikan karena Staff memang diberi kewenangan mengelolanya.
      */
     public function test_staff_routes_do_not_allow_write_methods(): void
     {
@@ -145,7 +168,11 @@ class StaffSecurityTest extends TestCase
             return str_starts_with(
                 $route->uri(),
                 'staff/'
-            );
+            )
+                && !str_starts_with($route->uri(), 'staff/agenda')
+                && !str_starts_with($route->uri(), 'staff/surat')
+                && !str_starts_with($route->uri(), 'staff/templates-surat')
+                && !str_starts_with($route->uri(), 'staff/publikasi');
         });
 
         $this->assertNotEmpty($staffRoutes);

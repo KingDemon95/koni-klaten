@@ -7,3 +7,44 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Aksesibilitas dan navigasi keyboard untuk seluruh portal KONI Klaten. */
+.koni-skip-link {
+    position: fixed;
+    z-index: 1000;
+    top: 0.75rem;
+    left: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    color: #fff;
+    background: #991b1b;
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.2);
+    transform: translateY(-200%);
+}
+
+.koni-skip-link:focus,
+.koni-skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 3px solid #facc15;
+    outline-offset: 3px;
+}
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+    outline: 3px solid #b91c1c;
+    outline-offset: 3px;
+}
+
+.koni-public-nav a[aria-current="page"] {
+    color: #b91c1c;
+    background-color: #fff1f2;
+    border-radius: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html:focus-within { scroll-behavior: auto; }
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

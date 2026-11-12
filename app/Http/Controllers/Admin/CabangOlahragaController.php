@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CabangOlahraga;
+use App\Models\User;
+use App\Support\AccountProvisioner;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class CabangOlahragaController extends Controller
 {
@@ -64,6 +66,7 @@ class CabangOlahragaController extends Controller
     {
         return view('admin.cabor.create', [
             'cabor' => new CabangOlahraga(),
+            'adminAccount' => null,
         ]);
     }
 
@@ -81,7 +84,10 @@ class CabangOlahragaController extends Controller
                 'unique:cabang_olahraga,nama',
             ],
 
-            'singkatan' => ['nullable', 'string', 'max:30'],
+            'admin_name' => ['required', 'string', 'max:255'],
+            'admin_email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+
+            'singkatan'  => ['nullable', 'string', 'max:30'],
             'deskripsi' => ['nullable', 'string', 'max:3000'],
             'nama_ketua' => ['nullable', 'string', 'max:150'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -108,12 +114,25 @@ class CabangOlahragaController extends Controller
         }
 
         unset($validated['logo']);
+        $adminName = $validated['admin_name'];
+        $adminEmail = $validated['admin_email'];
+        unset($validated['admin_name'], $validated['admin_email']);
 
-        CabangOlahraga::create($validated);
+        DB::transaction(function () use ($validated, $adminName, $adminEmail) {
+            $cabor = CabangOlahraga::create($validated);
+
+            AccountProvisioner::create(
+                $adminName,
+                $adminEmail,
+                'admin_cabor',
+                $cabor->id,
+                $cabor->status === 'aktif',
+            );
+        });
 
         return redirect()
             ->route('admin.cabor.index')
-            ->with('success', 'Cabang olahraga berhasil ditambahkan.');
+            ->with('success', 'Cabang olahraga dan akun Admin Cabor berhasil dibuat. Login: '.$adminEmail.'. Password awal: '.config('account_defaults.passwords.admin_cabor').'.');
     }
 
 
@@ -122,7 +141,12 @@ class CabangOlahragaController extends Controller
      */
     public function edit(CabangOlahraga $cabor): View
     {
-        return view('admin.cabor.edit', compact('cabor'));
+        $adminAccount = User::query()
+            ->where('cabang_olahraga_id', $cabor->id)
+            ->whereHas('roles', fn ($query) => $query->where('name', 'admin_cabor'))
+            ->first();
+
+        return view('admin.cabor.edit', compact('cabor', 'adminAccount'));
     }
 
 
@@ -134,6 +158,16 @@ class CabangOlahragaController extends Controller
         CabangOlahraga $cabor
     ): RedirectResponse {
 
+        $existingAdminAccount = User::query()
+            ->where('cabang_olahraga_id', $cabor->id)
+            ->whereHas('roles', fn ($query) => $query->where('name', 'admin_cabor'))
+            ->first();
+
+        $adminEmailUnique = Rule::unique('users', 'email');
+        if ($existingAdminAccount) {
+            $adminEmailUnique->ignore($existingAdminAccount->id);
+        }
+
         $validated = $request->validate([
             'nama' => [
                 'required',
@@ -141,6 +175,14 @@ class CabangOlahragaController extends Controller
                 'max:150',
                 Rule::unique('cabang_olahraga', 'nama')
                     ->ignore($cabor->id),
+            ],
+
+            'admin_name' => ['required', 'string', 'max:255'],
+            'admin_email' => [
+                'required',
+                'email',
+                'max:255',
+                $adminEmailUnique,
             ],
 
             'singkatan' => ['nullable', 'string', 'max:30'],
@@ -177,12 +219,42 @@ class CabangOlahragaController extends Controller
         }
 
         unset($validated['logo']);
+        $adminName = $validated['admin_name'];
+        $adminEmail = $validated['admin_email'];
+        unset($validated['admin_name'], $validated['admin_email']);
 
-        $cabor->update($validated);
+        DB::transaction(function () use ($cabor, $validated, $adminName, $adminEmail) {
+            $cabor->update($validated);
+
+            $adminAccount = User::query()
+                ->where('cabang_olahraga_id', $cabor->id)
+                ->whereHas('roles', fn ($query) => $query->where('name', 'admin_cabor'))
+                ->first();
+
+            if ($adminAccount) {
+                $adminAccount->update([
+                    'name' => $adminName,
+                    'email' => mb_strtolower(trim($adminEmail)),
+                    'is_active' => $cabor->status === 'aktif',
+                ]);
+            } else {
+                AccountProvisioner::create(
+                    $adminName,
+                    $adminEmail,
+                    'admin_cabor',
+                    $cabor->id,
+                    $cabor->status === 'aktif',
+                );
+            }
+        });
+
+        $successMessage = $existingAdminAccount
+            ? 'Data cabang olahraga dan akun Admin Cabor berhasil diperbarui.'
+            : 'Data cabang olahraga dan akun Admin Cabor berhasil dibuat. Login: '.$adminEmail.'. Password awal: '.config('account_defaults.passwords.admin_cabor').'.';
 
         return redirect()
             ->route('admin.cabor.index')
-            ->with('success', 'Data cabang olahraga berhasil diperbarui.');
+            ->with('success', $successMessage);
     }
 
 
@@ -194,13 +266,14 @@ class CabangOlahragaController extends Controller
         if (
             $cabor->atlets()->exists() ||
             $cabor->pelatihs()->exists() ||
-            $cabor->pengurus()->exists()
+            $cabor->pengurus()->exists() ||
+            User::where('cabang_olahraga_id', $cabor->id)->exists()
         ) {
             return redirect()
                 ->route('admin.cabor.index')
                 ->with(
                     'error',
-                    'Cabor tidak dapat dihapus karena masih memiliki data atlet, pelatih, atau pengurus. Nonaktifkan cabor jika tidak digunakan.'
+                    'Cabor tidak dapat dihapus karena masih memiliki akun Admin Cabor, data atlet, pelatih, atau pengurus. Nonaktifkan cabor jika tidak digunakan.'
                 );
         }
 

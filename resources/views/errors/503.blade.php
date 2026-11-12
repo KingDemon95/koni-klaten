@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('title', 'Sedang pemeliharaan')
+@section('code', '503')
+@section('heading', 'Sistem sedang dipelihara')
+@section('message', 'Layanan KONI Klaten sedang menjalani pemeliharaan. Silakan kunjungi kembali beberapa saat lagi.')

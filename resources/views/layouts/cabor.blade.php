@@ -12,6 +12,8 @@
 
 <body class="min-h-screen bg-[#F4F5F7] text-gray-900">
 
+
+<a href="#konten-utama" class="koni-skip-link">Langsung ke konten utama</a>
 <div class="min-h-screen lg:flex">
 
     <!-- SIDEBAR -->
@@ -74,6 +76,32 @@
 
             </a>
 
+            <a href="{{ route('cabor.laporan.index') }}"
+               class="block rounded-xl px-4 py-3 text-sm font-semibold
+               {{ request()->routeIs('cabor.laporan.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">
+                Laporan & Rekapitulasi
+            </a>
+
+            <a href="{{ route('cabor.agenda.index') }}"
+               class="block rounded-xl px-4 py-3 text-sm font-semibold
+               {{ request()->routeIs('cabor.agenda.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">
+                Agenda & Kejuaraan
+            </a>
+
+            <a href="{{ route('cabor.surat.index') }}"
+               class="block rounded-xl px-4 py-3 text-sm font-semibold
+               {{ request()->routeIs('cabor.surat.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">
+                Persuratan
+            </a>
+
+            <a href="{{ route('cabor.templates.index') }}"
+               class="block rounded-xl px-4 py-3 text-sm font-semibold
+               {{ request()->routeIs('cabor.templates.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">
+                Template Surat
+            </a>
+
+            <a href="{{ route('cabor.prestasi.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('cabor.prestasi.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Verifikasi Prestasi</a>
+            <a href="{{ route('cabor.izin-latihan.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('cabor.izin-latihan.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Izin Latihan</a>
         </nav>
 
         <div class="border-t border-white/10 p-5 text-xs text-gray-400">
@@ -100,6 +128,12 @@
                         <a href="{{ route('cabor.atlet.index') }}">Data Atlet</a>
                         <a href="{{ route('cabor.pelatih.index') }}">Data Pelatih</a>
                         <a href="{{ route('cabor.pengurus.index') }}">Struktur Organisasi</a>
+                        <a href="{{ route('cabor.laporan.index') }}">Laporan & Rekapitulasi</a>
+                        <a href="{{ route('cabor.agenda.index') }}">Agenda & Kejuaraan</a>
+                        <a href="{{ route('cabor.surat.index') }}">Persuratan</a>
+                        <a href="{{ route('cabor.templates.index') }}">Template Surat</a>
+                        <a href="{{ route('cabor.prestasi.index') }}">Verifikasi Prestasi</a>
+                        <a href="{{ route('cabor.izin-latihan.index') }}">Izin Latihan</a>
                     </nav>
                 </details>
 
@@ -117,6 +151,8 @@
 
 
             <div class="flex items-center gap-3">
+
+                @include('partials.notification-link')
 
                 <div class="hidden text-right sm:block">
                     <p class="text-sm font-bold">
@@ -141,7 +177,8 @@
 
         </header>
 
-        <main class="p-4 sm:p-6 lg:p-8">
+        <main id="konten-utama" tabindex="-1" class="p-4 sm:p-6 lg:p-8">
+            @include('partials.demo-feedback')
             @yield('content')
         </main>
 

@@ -1,0 +1,13 @@
+@extends($layout)
+@section('title', $publikasi->judul)
+@section('heading', 'Detail Publikasi')
+@section('content')
+<div class="mx-auto max-w-5xl space-y-5">
+    @if(session('success'))<div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">{{ session('success') }}</div>@endif
+    <div class="flex flex-wrap items-center justify-between gap-3"><a href="{{ route($routePrefix.'.publikasi.index') }}" class="text-sm font-bold text-[#D71920] hover:underline">← Kembali ke daftar</a><div class="flex gap-2"><a href="{{ route($routePrefix.'.publikasi.edit', $publikasi) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700">Edit</a>@if($publikasi->status !== 'published')<form method="POST" action="{{ route($routePrefix.'.publikasi.publish', $publikasi) }}">@csrf<button class="rounded-lg bg-green-700 px-4 py-2 text-sm font-bold text-white">Publikasikan</button></form>@endif</div></div>
+    <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        @if($publikasi->media_path && $publikasi->jenis !== 'video')<img src="{{ route($routePrefix.'.publikasi.media', $publikasi) }}" alt="{{ $publikasi->judul }}" class="max-h-[480px] w-full object-cover">@elseif($publikasi->media_path && $publikasi->jenis === 'video')<video controls preload="metadata" class="max-h-[480px] w-full bg-black"><source src="{{ route($routePrefix.'.publikasi.media', $publikasi) }}"></video>@endif
+        <div class="p-6 sm:p-8"><div class="flex flex-wrap gap-2"><span class="rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700">{{ \App\Models\Publikasi::jenisLabels()[$publikasi->jenis] }}</span><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{{ $publikasi->kategori ?: 'Tanpa kategori' }}</span><span class="rounded-full px-3 py-1 text-xs font-bold {{ $publikasi->status === 'published' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800' }}">{{ \App\Models\Publikasi::statusLabels()[$publikasi->status] }}</span></div><h2 class="mt-4 text-2xl font-black text-slate-950 sm:text-3xl">{{ $publikasi->judul }}</h2>@if($publikasi->ringkasan)<p class="mt-3 text-base leading-7 text-slate-600">{{ $publikasi->ringkasan }}</p>@endif<div class="prose prose-slate mt-6 max-w-none whitespace-pre-line leading-8">{{ $publikasi->konten }}</div><div class="mt-8 border-t border-slate-100 pt-4 text-xs text-slate-500">Dibuat oleh {{ $publikasi->creator?->name ?? 'Pengelola' }} · Diperbarui {{ $publikasi->updated_at?->format('d M Y H:i') }}@if($publikasi->published_at) · Dipublikasikan {{ $publikasi->published_at->format('d M Y H:i') }}@endif</div></div>
+    </article>
+</div>
+@endsection

@@ -211,8 +211,27 @@
                 placeholder="email@contoh.com"
                 class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-red-500"
             >
+            @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
 
         </div>
+
+        @if($pengurus->user)
+            <div class="md:col-span-2 rounded-xl border border-green-200 bg-green-50 p-4">
+                <p class="text-sm font-bold text-green-800">Akun Staff KONI sudah terhubung</p>
+                <p class="mt-1 text-xs text-green-700">Email login: {{ $pengurus->user->email }}. Perubahan nama dan email di atas akan disinkronkan ke akun ini.</p>
+            </div>
+        @else
+            <div class="md:col-span-2 rounded-xl border border-red-100 bg-red-50 p-4">
+                <label class="flex items-start gap-3 text-sm font-semibold text-gray-900">
+                    <input type="checkbox" name="buat_akun_staff" value="1" @checked(old('buat_akun_staff')) class="mt-1 rounded border-gray-300 text-red-600">
+                    <span>
+                        Buat akun login Staff KONI secara otomatis
+                        <span class="mt-1 block text-xs font-normal text-gray-600">Centang jika pengurus ini berada pada tingkat KONI (bukan pengurus Cabor). Email di atas akan menjadi email login dan password awal mengikuti konfigurasi role Staff KONI.</span>
+                    </span>
+                </label>
+                @error('buat_akun_staff')<p class="mt-2 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+        @endif
 
     </div>
 

@@ -214,19 +214,16 @@ $search = mb_substr(
             if ($validated['role'] === 'atlet') {
 
                 $atlet = Atlet::whereKey($validated['atlet_id'])
-    ->where('status', 'aktif')
-    ->where(function ($q) use ($pengguna) {
-        $q->whereNull('user_id')
-            ->orWhere('user_id', $pengguna->id);
-    })
-    ->lockForUpdate()
-    ->first();
+                    ->where('status', 'aktif')
+                    ->whereNull('user_id')
+                    ->lockForUpdate()
+                    ->first();
 
-if (!$atlet) {
-    throw ValidationException::withMessages([
-        'atlet_id' => 'Profil atlet sudah terhubung dengan akun lain atau tidak aktif.',
-    ]);
-}
+                if (!$atlet) {
+                    throw ValidationException::withMessages([
+                        'atlet_id' => 'Profil atlet sudah terhubung dengan akun lain atau tidak aktif.',
+                    ]);
+                }
 
                 $atlet->user()->associate($user);
                 $atlet->save();
@@ -236,19 +233,16 @@ if (!$atlet) {
             if ($validated['role'] === 'pelatih') {
 
                 $pelatih = Pelatih::whereKey($validated['pelatih_id'])
-    ->where('status', 'aktif')
-    ->where(function ($q) use ($pengguna) {
-        $q->whereNull('user_id')
-            ->orWhere('user_id', $pengguna->id);
-    })
-    ->lockForUpdate()
-    ->first();
+                    ->where('status', 'aktif')
+                    ->whereNull('user_id')
+                    ->lockForUpdate()
+                    ->first();
 
-if (!$pelatih) {
-    throw ValidationException::withMessages([
-        'pelatih_id' => 'Profil pelatih sudah terhubung dengan akun lain atau tidak aktif.',
-    ]);
-}
+                if (!$pelatih) {
+                    throw ValidationException::withMessages([
+                        'pelatih_id' => 'Profil pelatih sudah terhubung dengan akun lain atau tidak aktif.',
+                    ]);
+                }
 
                 $pelatih->user()->associate($user);
                 $pelatih->save();
@@ -348,7 +342,8 @@ if (!$pelatih) {
                 'nullable',
                 'required_if:role,admin_cabor',
                 'integer',
-                'exists:cabang_olahraga,id',
+                Rule::exists('cabang_olahraga', 'id')
+                    ->where('status', 'aktif'),
             ],
 
             'atlet_id' => [

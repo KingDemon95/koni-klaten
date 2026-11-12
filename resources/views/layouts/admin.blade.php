@@ -12,6 +12,8 @@
 
 <body class="min-h-screen bg-[#F4F5F7] text-gray-900">
 
+
+<a href="#konten-utama" class="koni-skip-link">Langsung ke konten utama</a>
 <div class="min-h-screen lg:flex">
 
     <!-- SIDEBAR DESKTOP -->
@@ -108,6 +110,8 @@
             <!-- USER PROFILE -->
             <div class="flex items-center gap-3">
 
+                @include('partials.notification-link')
+
                 <div class="hidden text-right sm:block">
                     <p class="text-sm font-bold">
                         {{ auth()->user()->name }}
@@ -139,7 +143,8 @@
 
 
         <!-- PAGE CONTENT -->
-        <main class="p-4 sm:p-6 lg:p-8">
+        <main id="konten-utama" tabindex="-1" class="p-4 sm:p-6 lg:p-8">
+            @include('partials.demo-feedback')
 
             @yield('content')
 

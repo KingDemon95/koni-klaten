@@ -53,4 +53,20 @@ class CabangOlahraga extends Model
             'cabang_olahraga_id'
         );
     }
+
+    /** Relasi agenda dan kejuaraan milik cabang olahraga. */
+    public function agendas(): HasMany
+    {
+        return $this->hasMany(Agenda::class, 'cabang_olahraga_id');
+    }
+
+    public function prestasis(): HasMany
+    {
+        return $this->hasMany(Prestasi::class, 'cabang_olahraga_id');
+    }
+
+    public function izinLatihans(): HasMany
+    {
+        return $this->hasMany(IzinLatihan::class, 'cabang_olahraga_id');
+    }
 }

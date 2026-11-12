@@ -6,6 +6,13 @@
 
 @section('content')
 
+@if (session('success'))
+    <div class="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">{{ session('success') }}</div>
+@endif
+@if (session('error'))
+    <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">{{ session('error') }}</div>
+@endif
+
 <div class="mb-7">
 
     <a href="{{ route('dashboard.pelatih') }}"
@@ -40,6 +47,11 @@
     </div>
 
 @else
+
+<div class="mb-5 flex flex-wrap gap-3">
+    <a href="{{ route('pelatih.profil.edit') }}" class="rounded-lg bg-[#E60012] px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700">Edit Biodata</a>
+</div>
+
 
     <!-- IDENTITAS -->
     <section class="mb-7 rounded-2xl border border-gray-200 bg-white p-6">

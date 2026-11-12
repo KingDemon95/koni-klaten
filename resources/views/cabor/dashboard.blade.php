@@ -67,7 +67,7 @@
         Manajemen Cabang Olahraga
     </h3>
 
-    <div class="grid gap-4 md:grid-cols-3">
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 
         <a href="{{ route('cabor.atlet.index') }}"
            class="rounded-xl border border-gray-200 bg-white p-6 transition hover:-translate-y-1 hover:border-red-300 hover:shadow-lg">
@@ -104,6 +104,15 @@
 
         </a>
 
+
+        <a href="{{ route('cabor.agenda.index') }}"
+           class="rounded-xl border border-gray-200 bg-white p-6 transition hover:-translate-y-1 hover:border-red-300 hover:shadow-lg">
+            <div class="mb-4 text-3xl">📅</div>
+            <h4 class="font-bold">Agenda & Kejuaraan</h4>
+            <p class="mt-2 text-sm text-gray-500">Kelola agenda cabang olahraga dan ajukan publikasi kepada Staff KONI.</p>
+            <p class="mt-3 text-xs font-semibold text-gray-500">{{ $totalAgenda }} agenda · {{ $agendaDraft }} perlu diajukan / direvisi</p>
+            <p class="mt-4 text-xs font-bold text-red-600">Kelola Agenda →</p>
+        </a>
 
         <a href="{{ route('cabor.pengurus.index') }}" 
             class="rounded-xl border border-gray-200 bg-white p-6 transition hover:-translate-y-1 hover:border-red-300 hover:shadow-lg">

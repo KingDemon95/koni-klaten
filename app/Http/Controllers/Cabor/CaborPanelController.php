@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Cabor;
 
 use App\Http\Controllers\Controller;
+use App\Models\Agenda;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -28,6 +29,8 @@ class CaborPanelController extends Controller
             ->count();
 
         $totalPengurus = $cabor->pengurus()->count();
+        $totalAgenda = $cabor->agendas()->count();
+        $agendaDraft = $cabor->agendas()->whereIn('status', [Agenda::STATUS_DRAFT, Agenda::STATUS_REVISI])->count();
 
         return view('cabor.dashboard', compact(
             'cabor',
@@ -35,7 +38,9 @@ class CaborPanelController extends Controller
             'atletAktif',
             'totalPelatih',
             'pelatihAktif',
-            'totalPengurus'
+            'totalPengurus',
+            'totalAgenda',
+            'agendaDraft'
         ));
     }
 

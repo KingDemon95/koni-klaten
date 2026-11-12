@@ -20,6 +20,14 @@ class DatabaseMigrationTest extends TestCase
             'atlets',
             'pelatihs',
             'pengurus',
+            'agendas',
+            'surats',
+            'surat_activities',
+            'template_surats',
+            'prestasis',
+            'izin_latihans',
+            'publikasis',
+            'profil_koni',
         ];
 
         foreach ($tables as $table) {
@@ -28,5 +36,14 @@ class DatabaseMigrationTest extends TestCase
                 "Tabel {$table} tidak ditemukan."
             );
         }
+
+        $this->assertDatabaseHas('profil_koni', [
+            'nama_singkat' => 'KONI Klaten',
+        ]);
+
+        $this->assertTrue(
+            Schema::hasColumn('prestasis', 'jenis_medali'),
+            'Kolom jenis_medali tidak ditemukan pada tabel prestasis.'
+        );
     }
 }

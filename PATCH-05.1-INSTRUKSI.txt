@@ -1,0 +1,16 @@
+PATCH 05.1 - Perbaikan pengujian keamanan Portal Atlet dan Pelatih
+
+Patch ini hanya memperbaiki dua file pengujian:
+- tests/Feature/Security/AtletSecurityTest.php
+- tests/Feature/Security/PelatihSecurityTest.php
+
+Perubahan:
+1. Pengujian akses role lain ke portal Atlet hanya memeriksa route Atlet. Route Pelatih tidak lagi dimasukkan ke pengujian tersebut, karena akun Pelatih memang harus dapat membuka portal Pelatih miliknya sendiri.
+2. Pemeriksaan daftar route menggunakan values() agar indeks internal koleksi Laravel tidak menyebabkan perbandingan array gagal.
+
+Tidak ada perubahan pada controller, route aplikasi, migration, database, atau file .env.
+
+Setelah mengekstrak patch, jalankan:
+  docker compose exec laravel.test php artisan test
+
+Patch ini ditujukan untuk diterapkan di atas Patch 05 yang sudah terpasang.

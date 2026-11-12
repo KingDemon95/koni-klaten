@@ -199,6 +199,9 @@ class AtletSecurityTest extends TestCase
         $routes = [
             'dashboard.atlet',
             'atlet.profil',
+            'atlet.prestasi.index',
+            'atlet.izin-latihan.index',
+            'atlet.templates.index',
         ];
 
         foreach ($roles as $role) {
@@ -217,40 +220,28 @@ class AtletSecurityTest extends TestCase
     }
 
     /**
-     * Portal Atlet tidak menyediakan route perubahan data.
+     * Route perubahan Atlet hanya tersedia untuk profil, prestasi, dan izin latihan miliknya.
      */
-    public function test_atlet_routes_do_not_allow_write_methods(): void
+    public function test_atlet_write_routes_are_limited_to_own_portal_features(): void
     {
-        $writeMethods = [
-            'POST',
-            'PUT',
-            'PATCH',
-            'DELETE',
+        $writeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+        $allowedNames = [
+            'atlet.profil.update',
+            'atlet.prestasi.store',
+            'atlet.prestasi.update',
+            'atlet.prestasi.destroy',
+            'atlet.izin-latihan.store',
+            'atlet.izin-latihan.destroy',
         ];
 
-        $atletRoutes = collect(
-            Route::getRoutes()->getRoutes()
-        )->filter(function ($route) {
-            return str_starts_with(
-                $route->uri(),
-                'atlet/'
-            );
-        });
+        $writeRoutes = collect(Route::getRoutes()->getRoutes())
+            ->filter(fn ($route) => str_starts_with($route->uri(), 'atlet/'))
+            ->filter(fn ($route) => count(array_intersect($route->methods(), $writeMethods)) > 0);
 
-        $this->assertNotEmpty($atletRoutes);
+        $actualNames = $writeRoutes->values()->map(fn ($route) => $route->getName())->all();
 
-        foreach ($atletRoutes as $route) {
-            $methods = array_intersect(
-                $route->methods(),
-                $writeMethods
-            );
-
-            $this->assertEmpty(
-                $methods,
-                'Route perubahan data ditemukan: '
-                . $route->uri()
-            );
-        }
+        $this->assertNotEmpty($actualNames);
+        $this->assertEqualsCanonicalizing($allowedNames, $actualNames);
     }
 
     /**

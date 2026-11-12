@@ -191,6 +191,32 @@
         </div>
 
 
+        <div class="md:col-span-2 rounded-xl border border-red-100 bg-red-50 p-4">
+            <h3 class="font-black text-gray-900">Akun Admin Cabor</h3>
+            <p class="mt-1 text-xs text-gray-600">Akun login Admin Cabor akan dibuat otomatis dan langsung dihubungkan dengan cabang olahraga ini.</p>
+        </div>
+
+        <div>
+            <label class="mb-2 block text-sm font-semibold">Nama pemegang akun <span class="text-red-500">*</span></label>
+            <input type="text" name="admin_name" required maxlength="255"
+                value="{{ old('admin_name', $adminAccount?->name ?? $cabor->nama_ketua ?? $cabor->nama) }}"
+                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-red-500">
+            @error('admin_name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
+
+        <div>
+            <label class="mb-2 block text-sm font-semibold">Email login Admin Cabor <span class="text-red-500">*</span></label>
+            <input type="email" name="admin_email" required maxlength="255"
+                value="{{ old('admin_email', $adminAccount?->email) }}"
+                placeholder="admin.cabor@contoh.com"
+                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-red-500">
+            @error('admin_email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
+
+        <div class="md:col-span-2">
+            <p class="text-xs text-gray-500">Password awal dibuat otomatis sesuai konfigurasi role Admin Cabor. Email login harus unik dan dapat diakses oleh pemegang akun.</p>
+        </div>
+
         <div>
             <label class="mb-2 block text-sm font-semibold">
                 Status Cabor

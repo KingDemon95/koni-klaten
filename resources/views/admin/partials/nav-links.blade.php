@@ -32,34 +32,52 @@ $items = [
         'icon' => '05',
     ],
     [
+        'label' => 'Monitoring Prestasi',
+        'route' => 'admin.prestasi.index',
+        'active' => 'admin.prestasi.*',
+        'icon' => '06',
+    ],
+    [
+        'label' => 'Laporan & Rekapitulasi',
+        'route' => 'admin.laporan.index',
+        'active' => 'admin.laporan.*',
+        'icon' => '07',
+    ],
+    [
         'label' => 'Agenda & Kejuaraan',
         'route' => 'admin.agenda.index',
         'active' => 'admin.agenda.*',
-        'icon' => '06',
+        'icon' => '08',
     ],
     [
         'label' => 'Persuratan',
         'route' => 'admin.persuratan.index',
         'active' => 'admin.persuratan.*',
-        'icon' => '07',
+        'icon' => '09',
+    ],
+    [
+        'label' => 'Template Surat',
+        'route' => 'admin.templates.index',
+        'active' => 'admin.templates.*',
+        'icon' => '10',
     ],
     [
         'label' => 'Publikasi & Berita',
         'route' => 'admin.publikasi.index',
         'active' => 'admin.publikasi.*',
-        'icon' => '08',
+        'icon' => '11',
     ],
     [
         'label' => 'Manajemen Pengguna',
         'route' => 'admin.pengguna.index',
         'active' => 'admin.pengguna.*',
-        'icon' => '09',
+        'icon' => '12',
     ],
     [
-        'label' => 'Pengaturan',
+        'label' => 'Profil & Pengaturan KONI',
         'route' => 'admin.settings',
         'active' => 'admin.settings',
-        'icon' => '10',
+        'icon' => '13',
     ],
 ];
 @endphp

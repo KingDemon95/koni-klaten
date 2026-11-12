@@ -5,8 +5,44 @@ use App\Http\Controllers\Cabor\CaborPanelController;
 use App\Http\Controllers\Staff\StaffPanelController;
 use App\Http\Controllers\Atlet\AtletPanelController;
 use App\Http\Controllers\Pelatih\PelatihPanelController;
+use App\Http\Controllers\PublicPortalController;
+use App\Http\Controllers\PublicAgendaController;
+use App\Http\Controllers\AgendaController;
+use App\Http\Controllers\SuratController;
+use App\Http\Controllers\TemplateSuratController;
+use App\Http\Controllers\Portal\PrestasiController as PortalPrestasiController;
+use App\Http\Controllers\Cabor\PrestasiController as CaborPrestasiController;
+use App\Http\Controllers\Portal\IzinLatihanController;
+use App\Http\Controllers\Cabor\IzinLatihanController as CaborIzinLatihanController;
+use App\Http\Controllers\PublikasiController;
+use App\Http\Controllers\PublicPublikasiController;
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\ProfilKoniController;
+use App\Http\Controllers\Admin\PrestasiMonitoringController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ReportController;
+
+Route::get('/', [PublicPortalController::class, 'home'])->name('public.home');
+Route::get('/sitemap.xml', \App\Http\Controllers\SitemapController::class)->name('public.sitemap');
+Route::get('/cabang-olahraga', [PublicPortalController::class, 'caborIndex'])->name('public.cabor.index');
+Route::get('/cabang-olahraga/{cabangOlahraga}', [PublicPortalController::class, 'caborShow'])
+    ->whereNumber('cabangOlahraga')
+    ->name('public.cabor.show');
+Route::get('/struktur-pengurus', [PublicPortalController::class, 'strukturIndex'])->name('public.struktur.index');
+Route::get('/statistik-prestasi', [\App\Http\Controllers\PublicStatistikController::class, 'index'])->name('public.statistik.index');
+Route::get('/agenda', [PublicAgendaController::class, 'index'])->name('public.agenda.index');
+Route::get('/agenda/{agenda:slug}', [PublicAgendaController::class, 'show'])->name('public.agenda.show');
+Route::get('/berita', [PublicPublikasiController::class, 'beritaIndex'])->name('public.berita.index');
+Route::get('/berita/{publikasi:slug}', [PublicPublikasiController::class, 'beritaShow'])->name('public.berita.show');
+Route::get('/dokumentasi', [PublicPublikasiController::class, 'dokumentasiIndex'])->name('public.dokumentasi.index');
+Route::get('/dokumentasi/{publikasi:slug}', [PublicPublikasiController::class, 'dokumentasiShow'])->name('public.dokumentasi.show');
+Route::get('/publikasi/{publikasi:slug}/media/{variant?}', [PublicPublikasiController::class, 'media'])->whereIn('variant', ['media', 'thumbnail'])->name('public.publikasi.media');
 
 Route::middleware('auth')->group(function () {
+
+    Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifikasi/baca-semua', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::post('/notifikasi/{notification}/buka', [NotificationController::class, 'open'])->name('notifications.open');
 
     // Pengalihan dashboard berdasarkan role.
     Route::get('/dashboard', function () {
@@ -41,8 +77,8 @@ Route::middleware('auth')->group(function () {
 
     })->name('dashboard');
 
-    // Dashboard Admin KONI
-    Route::view('/dashboard/admin-koni', 'admin.dashboard')
+    // Dashboard Admin KONI dengan ringkasan data langsung dari database.
+    Route::get('/dashboard/admin-koni', AdminDashboardController::class)
         ->middleware('role:admin_koni')
         ->name('dashboard.admin-koni');
 
@@ -91,9 +127,6 @@ Route::middleware('auth')->group(function () {
 
 });
 
-Route::get('/', function () {
-    return view('welcome');
-});
 
 Route::middleware(['auth', 'role:admin_koni'])
     ->prefix('admin')
@@ -121,22 +154,37 @@ Route::middleware(['auth', 'role:admin_koni'])
         \App\Http\Controllers\Admin\StrukturOrganisasiController::class
     )->except(['show']);
 
-    Route::view('/agenda', 'admin.pages.placeholder', [
-        'pageTitle' => 'Agenda dan Kejuaraan',
-        'pageDescription' => 'Pengelolaan jadwal kegiatan, pertandingan, dan kejuaraan olahraga.',
-    ])->name('agenda.index');
+    Route::get('prestasi', [PrestasiMonitoringController::class, 'index'])->name('prestasi.index');
+    Route::get('prestasi/{prestasi}/bukti', [PrestasiMonitoringController::class, 'download'])->name('prestasi.bukti');
+
+    Route::post('agenda/{agenda}/publish', [AgendaController::class, 'publish'])->name('agenda.publish');
+    Route::post('agenda/{agenda}/revisi', [AgendaController::class, 'requestRevision'])->name('agenda.revisi');
+    Route::resource('agenda', AgendaController::class)->except(['show']);
 
 
-    Route::view('/persuratan', 'admin.pages.placeholder', [
-        'pageTitle' => 'Manajemen Persuratan',
-        'pageDescription' => 'Pengelolaan surat masuk, surat keluar, persetujuan, dan revisi dokumen.',
-    ])->name('persuratan.index');
+    // Nama dan URL Persuratan Admin KONI dibuat eksplisit agar konsisten dengan menu panel.
+    Route::get('persuratan', [SuratController::class, 'index'])->name('persuratan.index');
+    Route::get('persuratan/{surat}', [SuratController::class, 'show'])->name('persuratan.show');
+    Route::post('persuratan/{surat}/keputusan', [SuratController::class, 'decide'])->name('persuratan.keputusan');
+    Route::get('persuratan/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('persuratan.file');
+
+    // Alias URL lama dipertahankan agar tautan yang sudah pernah digunakan tidak langsung rusak.
+    Route::get('surat', [SuratController::class, 'index'])->name('surat.index');
+    Route::get('surat/{surat}', [SuratController::class, 'show'])->name('surat.show');
+    Route::post('surat/{surat}/keputusan', [SuratController::class, 'decide'])->name('surat.keputusan');
+    Route::get('surat/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('surat.file');
+
+    Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
+    Route::post('templates-surat', [TemplateSuratController::class, 'store'])->name('templates.store');
+    Route::put('templates-surat/{template}', [TemplateSuratController::class, 'update'])->name('templates.update');
+    Route::delete('templates-surat/{template}', [TemplateSuratController::class, 'destroy'])->name('templates.destroy');
+    Route::get('templates-surat/{template}/download', [TemplateSuratController::class, 'download'])->name('templates.download');
 
 
-    Route::view('/publikasi', 'admin.pages.placeholder', [
-        'pageTitle' => 'Publikasi dan Berita',
-        'pageDescription' => 'Pengelolaan berita, dokumentasi, foto, dan informasi kegiatan KONI.',
-    ])->name('publikasi.index');
+    Route::get('publikasi/{publikasi}/media/{variant?}', [PublikasiController::class, 'media'])
+        ->whereIn('variant', ['media', 'thumbnail'])->name('publikasi.media');
+    Route::post('publikasi/{publikasi}/publish', [PublikasiController::class, 'publish'])->name('publikasi.publish');
+    Route::resource('publikasi', PublikasiController::class);
 
 
     Route::resource(
@@ -145,10 +193,13 @@ Route::middleware(['auth', 'role:admin_koni'])
     )->except(['show']);
 
 
-    Route::view('/pengaturan', 'admin.pages.placeholder', [
-        'pageTitle' => 'Pengaturan Sistem',
-        'pageDescription' => 'Pengaturan identitas organisasi dan konfigurasi aplikasi.',
-    ])->name('settings');
+    Route::get('laporan', [ReportController::class, 'index'])->name('laporan.index');
+    Route::get('laporan/export/{jenis}', [ReportController::class, 'export'])
+        ->whereIn('jenis', ['cabor', 'prestasi'])
+        ->name('laporan.export');
+
+    Route::get('/pengaturan', [ProfilKoniController::class, 'edit'])->name('settings');
+    Route::put('/pengaturan', [ProfilKoniController::class, 'update'])->name('settings.update');
 
 });
 
@@ -195,6 +246,29 @@ Route::middleware([
             'pengurus' => 'pengurus',
         ]);
 
+    Route::post('agenda/{agenda}/ajukan', [AgendaController::class, 'submit'])->name('agenda.submit');
+    Route::resource('agenda', AgendaController::class)->except(['show']);
+
+    Route::resource('surat', SuratController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+    Route::post('surat/{surat}/ajukan', [SuratController::class, 'submit'])->name('surat.submit');
+    Route::get('surat/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('surat.file');
+
+    Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
+    Route::get('templates-surat/{template}/download', [TemplateSuratController::class, 'download'])->name('templates.download');
+
+    Route::get('prestasi', [CaborPrestasiController::class, 'index'])->name('prestasi.index');
+    Route::post('prestasi/{prestasi}/review', [CaborPrestasiController::class, 'review'])->name('prestasi.review');
+    Route::get('prestasi/{prestasi}/bukti', [CaborPrestasiController::class, 'download'])->name('prestasi.bukti');
+
+    Route::get('laporan', [ReportController::class, 'index'])->name('laporan.index');
+    Route::get('laporan/export/{jenis}', [ReportController::class, 'export'])
+        ->whereIn('jenis', ['cabor', 'prestasi'])
+        ->name('laporan.export');
+
+    Route::get('izin-latihan', [CaborIzinLatihanController::class, 'index'])->name('izin-latihan.index');
+    Route::post('izin-latihan/{izinLatihan}/keputusan', [CaborIzinLatihanController::class, 'decide'])->name('izin-latihan.keputusan');
+    Route::get('izin-latihan/{izinLatihan}/download', [CaborIzinLatihanController::class, 'download'])->name('izin-latihan.download');
+
 });
 
 Route::middleware([
@@ -225,6 +299,33 @@ Route::middleware([
         [StaffPanelController::class, 'pengurus']
     )->name('pengurus.index');
 
+    Route::post('agenda/{agenda}/publish', [AgendaController::class, 'publish'])->name('agenda.publish');
+    Route::post('agenda/{agenda}/revisi', [AgendaController::class, 'requestRevision'])->name('agenda.revisi');
+    Route::resource('agenda', AgendaController::class)->except(['show']);
+
+    Route::get('surat', [SuratController::class, 'index'])->name('surat.index');
+    Route::get('surat/{surat}', [SuratController::class, 'show'])->name('surat.show');
+    Route::post('surat/{surat}/revisi', [SuratController::class, 'requestRevision'])->name('surat.revisi');
+    Route::post('surat/{surat}/teruskan', [SuratController::class, 'forward'])->name('surat.teruskan');
+    Route::post('surat/{surat}/sampaikan', [SuratController::class, 'deliver'])->name('surat.sampaikan');
+    Route::get('surat/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('surat.file');
+
+    Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
+    Route::post('templates-surat', [TemplateSuratController::class, 'store'])->name('templates.store');
+    Route::put('templates-surat/{template}', [TemplateSuratController::class, 'update'])->name('templates.update');
+    Route::delete('templates-surat/{template}', [TemplateSuratController::class, 'destroy'])->name('templates.destroy');
+    Route::get('templates-surat/{template}/download', [TemplateSuratController::class, 'download'])->name('templates.download');
+
+    Route::get('laporan', [ReportController::class, 'index'])->name('laporan.index');
+    Route::get('laporan/export/{jenis}', [ReportController::class, 'export'])
+        ->whereIn('jenis', ['cabor', 'prestasi'])
+        ->name('laporan.export');
+
+    Route::get('publikasi/{publikasi}/media/{variant?}', [PublikasiController::class, 'media'])
+        ->whereIn('variant', ['media', 'thumbnail'])->name('publikasi.media');
+    Route::post('publikasi/{publikasi}/publish', [PublikasiController::class, 'publish'])->name('publikasi.publish');
+    Route::resource('publikasi', PublikasiController::class);
+
 });
 
 Route::middleware([
@@ -235,10 +336,20 @@ Route::middleware([
     ->name('atlet.')
     ->group(function () {
 
-    Route::get(
-        '/profil',
-        [AtletPanelController::class, 'profil']
-    )->name('profil');
+    Route::get('/profil', [AtletPanelController::class, 'profil'])->name('profil');
+    Route::get('/profil/edit', [AtletPanelController::class, 'editProfil'])->name('profil.edit');
+    Route::put('/profil', [AtletPanelController::class, 'updateProfil'])->name('profil.update');
+
+    Route::resource('prestasi', PortalPrestasiController::class)->except(['show']);
+    Route::get('prestasi/{prestasi}/bukti', [PortalPrestasiController::class, 'download'])->name('prestasi.bukti');
+
+    Route::get('izin-latihan', [IzinLatihanController::class, 'index'])->name('izin-latihan.index');
+    Route::post('izin-latihan', [IzinLatihanController::class, 'store'])->name('izin-latihan.store');
+    Route::get('izin-latihan/{izinLatihan}/download', [IzinLatihanController::class, 'download'])->name('izin-latihan.download');
+    Route::delete('izin-latihan/{izinLatihan}', [IzinLatihanController::class, 'destroy'])->name('izin-latihan.destroy');
+
+    Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
+    Route::get('templates-surat/{template}/download', [TemplateSuratController::class, 'download'])->name('templates.download');
 
 });
 
@@ -250,9 +361,19 @@ Route::middleware([
     ->name('pelatih.')
     ->group(function () {
 
-    Route::get(
-        '/profil',
-        [PelatihPanelController::class, 'profil']
-    )->name('profil');
+    Route::get('/profil', [PelatihPanelController::class, 'profil'])->name('profil');
+    Route::get('/profil/edit', [PelatihPanelController::class, 'editProfil'])->name('profil.edit');
+    Route::put('/profil', [PelatihPanelController::class, 'updateProfil'])->name('profil.update');
+
+    Route::resource('prestasi', PortalPrestasiController::class)->except(['show']);
+    Route::get('prestasi/{prestasi}/bukti', [PortalPrestasiController::class, 'download'])->name('prestasi.bukti');
+
+    Route::get('izin-latihan', [IzinLatihanController::class, 'index'])->name('izin-latihan.index');
+    Route::post('izin-latihan', [IzinLatihanController::class, 'store'])->name('izin-latihan.store');
+    Route::get('izin-latihan/{izinLatihan}/download', [IzinLatihanController::class, 'download'])->name('izin-latihan.download');
+    Route::delete('izin-latihan/{izinLatihan}', [IzinLatihanController::class, 'destroy'])->name('izin-latihan.destroy');
+
+    Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
+    Route::get('templates-surat/{template}/download', [TemplateSuratController::class, 'download'])->name('templates.download');
 
 });

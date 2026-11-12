@@ -70,9 +70,10 @@ class AdminKoniSecurityTest extends TestCase
             'admin.pelatih.index',
             'admin.struktur-organisasi.index',
             'admin.pengguna.index',
-
             'admin.agenda.index',
+            'admin.prestasi.index',
             'admin.persuratan.index',
+            'admin.templates.index',
             'admin.publikasi.index',
             'admin.settings',
         ];
@@ -126,6 +127,26 @@ class AdminKoniSecurityTest extends TestCase
 
             $this->actingAs($user)
                 ->get(route('admin.pengguna.index'))
+                ->assertForbidden();
+
+            $this->actingAs($user)
+                ->get(route('admin.agenda.index'))
+                ->assertForbidden();
+
+            $this->actingAs($user)
+                ->get(route('admin.prestasi.index'))
+                ->assertForbidden();
+
+            $this->actingAs($user)
+                ->get(route('admin.persuratan.index'))
+                ->assertForbidden();
+
+            $this->actingAs($user)
+                ->get(route('admin.templates.index'))
+                ->assertForbidden();
+
+            $this->actingAs($user)
+                ->get(route('admin.publikasi.index'))
                 ->assertForbidden();
         }
     }

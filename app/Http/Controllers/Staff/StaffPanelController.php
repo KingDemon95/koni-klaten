@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
+use App\Models\Agenda;
 use App\Models\Atlet;
 use App\Models\CabangOlahraga;
 use App\Models\Pelatih;
@@ -41,6 +42,13 @@ class StaffPanelController extends Controller
                 'total' => Pengurus::count(),
                 'aktif' => Pengurus::where('status', 'aktif')->count(),
                 'route' => 'staff.pengurus.index',
+            ],
+            [
+                'label' => 'Agenda & Kejuaraan',
+                'total' => Agenda::count(),
+                'aktif' => Agenda::where('status', Agenda::STATUS_PUBLISHED)->count(),
+                'aktif_label' => 'dipublikasikan',
+                'route' => 'staff.agenda.index',
             ],
         ];
 

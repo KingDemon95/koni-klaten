@@ -9,6 +9,7 @@ use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureAdminCaborAssigned;
+use App\Http\Middleware\SecurityHeaders;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,10 +18,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+// Mempercayai proxy Cloudflare Tunnel agar HTTPS terdeteksi.
+$middleware->trustProxies(
+    at: '*',
+    headers: Request::HEADER_X_FORWARDED_FOR |
+        Request::HEADER_X_FORWARDED_HOST |
+        Request::HEADER_X_FORWARDED_PORT |
+        Request::HEADER_X_FORWARDED_PROTO,
+);
 
         // Pemeriksaan status akun untuk seluruh route web.
         $middleware->web(append: [
             EnsureUserIsActive::class,
+            SecurityHeaders::class,
         ]);
 
         // Middleware Spatie Permission.

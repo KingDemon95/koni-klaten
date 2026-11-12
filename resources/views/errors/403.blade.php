@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('title', 'Akses ditolak')
+@section('code', '403')
+@section('heading', 'Akses tidak diizinkan')
+@section('message', 'Anda tidak memiliki hak akses untuk membuka halaman ini. Jika merasa seharusnya memiliki akses, silakan hubungi administrator KONI.')

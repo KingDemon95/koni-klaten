@@ -232,6 +232,9 @@
                                         <p class="mt-1 text-xs text-gray-500">
                                             {{ $pengurus->email ?: 'Email belum tersedia' }}
                                         </p>
+                                        @if($pengurus->user)
+                                            <span class="mt-1 inline-flex rounded-full bg-green-50 px-2 py-1 text-[10px] font-bold text-green-700">Akun Staff terhubung</span>
+                                        @endif
 
                                     </div>
 
