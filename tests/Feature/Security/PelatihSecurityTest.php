@@ -22,6 +22,8 @@ class PelatihSecurityTest extends TestCase
             'pelatih',
             'atlet',
             'admin_koni',
+            'ketua_koni',
+            'sekretaris_koni',
             'admin_cabor',
             'staff_koni',
         ] as $role) {

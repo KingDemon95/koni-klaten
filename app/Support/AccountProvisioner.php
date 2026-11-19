@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use App\Support\Audit\AuditLogger;
 use RuntimeException;
 
 class AccountProvisioner
@@ -35,6 +36,13 @@ class AccountProvisioner
         ]);
 
         $user->syncRoles([$role]);
+
+        app(AuditLogger::class)->recordCustom(
+            'role_assigned',
+            $user,
+            [],
+            ['roles' => [$role]],
+        );
 
         return $user;
     }

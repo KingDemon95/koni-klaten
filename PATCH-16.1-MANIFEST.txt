@@ -1,0 +1,1 @@
+feb189c1bf72dd55fbf72f995a3b9969343967ef2aa7fc8006f83dda9f447017  tests/Feature/Security/InventorySecurityTest.php

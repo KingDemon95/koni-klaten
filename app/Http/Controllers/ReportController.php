@@ -75,6 +75,7 @@ class ReportController extends Controller
             'layout' => match ($context['routePrefix']) {
                 'cabor' => 'layouts.cabor',
                 'staff' => 'layouts.staff',
+                'sekretaris' => 'layouts.sekretaris',
                 default => 'layouts.admin',
             },
         ]);
@@ -168,7 +169,7 @@ class ReportController extends Controller
 
     /**
      * Validate filters and enforce the current user's data scope.
-     * Admin KONI and Staff KONI may select any active branch.
+     * Admin KONI, Ketua, Sekretaris, and Staff KONI may select any active branch.
      * Admin Cabor is always restricted to their assigned branch.
      *
      * @return array{year: ?int, caborId: ?int, selectedCaborId: ?int, routePrefix: string}
@@ -184,7 +185,7 @@ class ReportController extends Controller
         $user = $request->user();
         $routePrefix = $request->routeIs('cabor.*')
             ? 'cabor'
-            : ($request->routeIs('staff.*') ? 'staff' : 'admin');
+            : ($request->routeIs('staff.*') ? 'staff' : ($request->routeIs('sekretaris.*') ? 'sekretaris' : 'admin'));
         $isCaborAdmin = $routePrefix === 'cabor';
 
         $selectedCaborId = isset($validated['cabor_id'])

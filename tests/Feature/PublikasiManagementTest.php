@@ -19,7 +19,7 @@ class PublikasiManagementTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['admin_koni', 'staff_koni', 'admin_cabor', 'atlet', 'pelatih', 'atlet_pelatih'] as $role) {
+        foreach (['admin_koni', 'ketua_koni', 'sekretaris_koni', 'staff_koni', 'admin_cabor', 'atlet', 'pelatih', 'atlet_pelatih'] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
 
@@ -154,7 +154,7 @@ class PublikasiManagementTest extends TestCase
 
     public function test_only_staff_and_admin_koni_can_manage_publication_content(): void
     {
-        foreach (['admin_cabor', 'atlet', 'pelatih', 'atlet_pelatih'] as $role) {
+        foreach (['sekretaris_koni', 'admin_cabor', 'atlet', 'pelatih', 'atlet_pelatih'] as $role) {
             $user = $this->userWithRole($role);
 
             $this->actingAs($user)->get(route('staff.publikasi.index'))->assertForbidden();

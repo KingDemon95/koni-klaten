@@ -24,6 +24,8 @@ class SystemIntegrationSecurityTest extends TestCase
 
         foreach ([
             'admin_koni',
+            'ketua_koni',
+            'sekretaris_koni',
             'staff_koni',
             'admin_cabor',
             'atlet',
@@ -97,6 +99,8 @@ class SystemIntegrationSecurityTest extends TestCase
 
         $cases = [
             ['admin_koni', null, 'dashboard.admin-koni'],
+            ['ketua_koni', null, 'dashboard.ketua-koni'],
+            ['sekretaris_koni', null, 'dashboard.sekretaris-koni'],
             ['staff_koni', null, 'dashboard.staff-koni'],
             ['admin_cabor', $cabor, 'dashboard.admin-cabor'],
             ['atlet', null, 'dashboard.atlet'],

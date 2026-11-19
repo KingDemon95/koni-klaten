@@ -19,6 +19,8 @@ class StaffSecurityTest extends TestCase
 
         $roles = [
             'admin_koni',
+            'ketua_koni',
+            'sekretaris_koni',
             'staff_koni',
             'admin_cabor',
             'atlet',
@@ -114,6 +116,8 @@ class StaffSecurityTest extends TestCase
     {
         $roles = [
             'admin_koni',
+            'ketua_koni',
+            'sekretaris_koni',
             'admin_cabor',
             'atlet',
             'pelatih',
@@ -151,9 +155,10 @@ class StaffSecurityTest extends TestCase
 
     /**
      * Data master Staff tetap read-only. Agenda, persuratan, template surat, dan publikasi
-     * dikecualikan karena Staff memang diberi kewenangan mengelolanya.
+     * dapat dikelola Staff. Untuk inventaris, Staff hanya boleh menjalankan tiga transaksi
+     * pada aset pusat: mutasi lokasi, peminjaman, dan pengembalian.
      */
-    public function test_staff_routes_do_not_allow_write_methods(): void
+    public function test_staff_routes_do_not_allow_unapproved_write_methods(): void
     {
         $writeMethods = [
             'POST',
@@ -162,9 +167,15 @@ class StaffSecurityTest extends TestCase
             'DELETE',
         ];
 
-        $staffRoutes = collect(
-            Route::getRoutes()->getRoutes()
-        )->filter(function ($route) {
+        $allowedInventoryWriteRoutes = [
+            'staff.inventaris.mutasi' => ['POST'],
+            'staff.inventaris.peminjaman.store' => ['POST'],
+            'staff.inventaris.peminjaman.return' => ['POST'],
+        ];
+
+        $allRoutes = collect(Route::getRoutes()->getRoutes());
+
+        $staffRoutes = $allRoutes->filter(function ($route) use ($allowedInventoryWriteRoutes) {
             return str_starts_with(
                 $route->uri(),
                 'staff/'
@@ -172,7 +183,8 @@ class StaffSecurityTest extends TestCase
                 && !str_starts_with($route->uri(), 'staff/agenda')
                 && !str_starts_with($route->uri(), 'staff/surat')
                 && !str_starts_with($route->uri(), 'staff/templates-surat')
-                && !str_starts_with($route->uri(), 'staff/publikasi');
+                && !str_starts_with($route->uri(), 'staff/publikasi')
+                && !array_key_exists($route->getName(), $allowedInventoryWriteRoutes);
         });
 
         $this->assertNotEmpty($staffRoutes);
@@ -185,8 +197,29 @@ class StaffSecurityTest extends TestCase
 
             $this->assertEmpty(
                 $methods,
-                'Ditemukan route perubahan data Staff: '
+                'Ditemukan route perubahan data Staff yang tidak diizinkan: '
                 . $route->uri()
+            );
+        }
+
+        // Pastikan pengecualian inventaris tetap terbatas pada tiga endpoint POST ini.
+        $routesByName = $allRoutes->keyBy(fn ($route) => $route->getName());
+
+        foreach ($allowedInventoryWriteRoutes as $routeName => $expectedMethods) {
+            $this->assertTrue(
+                $routesByName->has($routeName),
+                'Route transaksi inventaris Staff tidak ditemukan: '.$routeName
+            );
+
+            $actualWriteMethods = array_values(array_intersect(
+                $routesByName->get($routeName)->methods(),
+                $writeMethods
+            ));
+
+            $this->assertSame(
+                $expectedMethods,
+                $actualWriteMethods,
+                'Metode HTTP route inventaris Staff tidak sesuai: '.$routeName
             );
         }
     }

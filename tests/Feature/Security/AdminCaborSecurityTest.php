@@ -18,6 +18,10 @@ class AdminCaborSecurityTest extends TestCase
     {
         parent::setUp();
 
+        Role::firstOrCreate(['name' => 'admin_koni', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'ketua_koni', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'sekretaris_koni', 'guard_name' => 'web']);
+
         Role::firstOrCreate([
             'name' => 'admin_cabor',
             'guard_name' => 'web',

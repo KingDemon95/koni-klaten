@@ -14,7 +14,7 @@ class TemplateSuratController extends Controller
     public function index(Request $request): View
     {
         $prefix = $this->routePrefix($request);
-        $isManager = in_array($prefix, ['admin', 'staff'], true);
+        $isManager = in_array($prefix, ['admin', 'staff', 'sekretaris'], true);
         $query = TemplateSurat::query()->with('uploader')->latest();
 
         if (!$isManager) {
@@ -27,6 +27,7 @@ class TemplateSuratController extends Controller
             'layout' => match ($prefix) {
                 'admin' => 'layouts.admin',
                 'staff' => 'layouts.staff',
+                'sekretaris' => 'layouts.sekretaris',
                 'cabor' => 'layouts.cabor',
                 'atlet' => 'layouts.atlet',
                 'pelatih' => 'layouts.pelatih',
@@ -101,7 +102,7 @@ class TemplateSuratController extends Controller
     public function download(Request $request, TemplateSurat $template): StreamedResponse
     {
         $prefix = $this->routePrefix($request);
-        if (!in_array($prefix, ['admin', 'staff'], true)) {
+        if (!in_array($prefix, ['admin', 'staff', 'sekretaris'], true)) {
             abort_unless($template->is_active, 404);
         }
 
@@ -112,14 +113,14 @@ class TemplateSuratController extends Controller
 
     private function ensureManager(Request $request): void
     {
-        abort_unless(in_array($this->routePrefix($request), ['admin', 'staff'], true), 403);
+        abort_unless(in_array($this->routePrefix($request), ['admin', 'staff', 'sekretaris'], true), 403);
     }
 
     private function routePrefix(Request $request): string
     {
         $name = $request->route()?->getName() ?? '';
 
-        foreach (['admin', 'staff', 'cabor', 'atlet', 'pelatih'] as $prefix) {
+        foreach (['admin', 'staff', 'sekretaris', 'cabor', 'atlet', 'pelatih'] as $prefix) {
             if (str_starts_with($name, $prefix.'.templates.')) {
                 return $prefix;
             }

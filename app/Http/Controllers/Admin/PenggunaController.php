@@ -7,6 +7,7 @@ use App\Models\Atlet;
 use App\Models\CabangOlahraga;
 use App\Models\Pelatih;
 use App\Models\User;
+use App\Support\Audit\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,8 @@ class PenggunaController extends Controller
 {
     private const ROLES = [
         'admin_koni',
+        'ketua_koni',
+        'sekretaris_koni',
         'staff_koni',
         'admin_cabor',
         'atlet',
@@ -209,6 +212,13 @@ $search = mb_substr(
             ]);
 
             $user->syncRoles([$validated['role']]);
+
+            app(AuditLogger::class)->recordCustom(
+                'role_assigned',
+                $user,
+                [],
+                ['roles' => [$validated['role']]],
+            );
 
             // Hubungkan profil atlet.
             if ($validated['role'] === 'atlet') {
@@ -405,6 +415,7 @@ $search = mb_substr(
 
         DB::transaction(function () use ($pengguna, $validated, $nextRole) {
 
+            $previousRoles = $pengguna->getRoleNames()->all();
             $currentAtlet = $pengguna->atlet;
             $currentPelatih = $pengguna->pelatih;
 
@@ -452,6 +463,16 @@ $search = mb_substr(
             $pengguna->update($data);
 
             $pengguna->syncRoles([$nextRole]);
+            $nextRoles = $pengguna->getRoleNames()->all();
+
+            if ($previousRoles !== $nextRoles) {
+                app(AuditLogger::class)->recordCustom(
+                    'role_changed',
+                    $pengguna,
+                    ['roles' => $previousRoles],
+                    ['roles' => $nextRoles],
+                );
+            }
 
             // Hubungkan profil atlet.
             if ($nextRole === 'atlet') {

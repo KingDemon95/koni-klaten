@@ -36,7 +36,7 @@
             <div>
                 <h2 class="font-black tracking-wider">KONI KLATEN</h2>
                 <p class="text-[10px] tracking-[0.2em] text-gray-400">
-                    ADMIN PANEL
+                    {{ auth()->user()->hasRole('ketua_koni') ? 'KETUA PANEL' : 'ADMIN PANEL' }}
                 </p>
             </div>
 
@@ -83,7 +83,7 @@
 
                         <div class="mb-4 border-b border-white/10 pb-4">
                             <p class="font-black text-white">KONI KLATEN</p>
-                            <p class="text-xs text-gray-400">ADMIN PANEL</p>
+                            <p class="text-xs text-gray-400">{{ auth()->user()->hasRole('ketua_koni') ? 'KETUA PANEL' : 'ADMIN PANEL' }}</p>
                         </div>
 
                         <nav class="space-y-1">
@@ -96,7 +96,7 @@
 
                 <div>
                     <p class="text-[10px] font-bold tracking-[0.2em] text-[#E60012]">
-                        ADMINISTRATION
+                        {{ auth()->user()->hasRole('ketua_koni') ? 'KEPEMIMPINAN KONI' : 'ADMINISTRATION' }}
                     </p>
 
                     <h1 class="text-lg font-black text-gray-900 sm:text-xl">
@@ -118,7 +118,7 @@
                     </p>
 
                     <p class="text-xs text-gray-500">
-                        Administrator KONI
+                        {{ auth()->user()->hasRole('ketua_koni') ? 'Ketua KONI' : 'Administrator KONI' }}
                     </p>
                 </div>
 

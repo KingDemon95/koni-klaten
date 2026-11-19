@@ -22,7 +22,7 @@ class AdminKoniDashboardTest extends TestCase
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        foreach (['admin_koni', 'staff_koni', 'admin_cabor', 'atlet', 'pelatih'] as $role) {
+        foreach (['admin_koni', 'ketua_koni', 'sekretaris_koni', 'staff_koni', 'admin_cabor', 'atlet', 'pelatih'] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
 
@@ -41,6 +41,8 @@ class AdminKoniDashboardTest extends TestCase
     {
         $admin = $this->userWithRole('admin_koni');
         $this->userWithRole('staff_koni');
+        $this->userWithRole('ketua_koni');
+        $this->userWithRole('sekretaris_koni');
         CabangOlahraga::query()->create([
             'nama' => 'Bulu Tangkis',
             'singkatan' => 'PBSI',
@@ -52,11 +54,14 @@ class AdminKoniDashboardTest extends TestCase
         $response->assertOk()
             ->assertViewHas('stats', function (array $stats): bool {
                 return $stats['cabor_aktif'] === 1
-                    && $stats['pengguna'] === 2
-                    && $stats['pengguna_aktif'] === 2;
+                    && $stats['pengguna'] === 4
+                    && $stats['pengguna_aktif'] === 4;
             })
             ->assertViewHas('roleCounts', function (array $counts): bool {
-                return $counts['Admin KONI'] === 1 && $counts['Staff KONI'] === 1;
+                return $counts['Admin KONI'] === 1
+                    && $counts['Ketua KONI'] === 1
+                    && $counts['Sekretaris KONI'] === 1
+                    && $counts['Staff KONI'] === 1;
             })
             ->assertSee('Ringkasan organisasi')
             ->assertSee('Komposisi akun berdasarkan role');

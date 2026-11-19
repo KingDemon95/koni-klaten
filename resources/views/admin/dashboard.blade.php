@@ -51,7 +51,7 @@
                 @foreach ([
                     ['label' => 'Agenda diajukan Admin Cabor', 'value' => $queues['agenda_diajukan'], 'route' => 'admin.agenda.index'],
                     ['label' => 'Prestasi menunggu verifikasi Admin Cabor', 'value' => $queues['prestasi_menunggu'], 'route' => 'admin.prestasi.index'],
-                    ['label' => 'Surat menunggu keputusan Admin KONI', 'value' => $queues['surat_menunggu_admin'], 'route' => 'admin.persuratan.index'],
+                    ['label' => 'Surat menunggu keputusan pimpinan KONI', 'value' => $queues['surat_menunggu_admin'], 'route' => 'admin.persuratan.index'],
                     ['label' => 'Keputusan surat menunggu disampaikan Staff', 'value' => $queues['surat_perlu_disampaikan'], 'route' => 'admin.persuratan.index'],
                     ['label' => 'Konten masih berupa draft', 'value' => $queues['publikasi_draft'], 'route' => 'admin.publikasi.index'],
                 ] as $queue)

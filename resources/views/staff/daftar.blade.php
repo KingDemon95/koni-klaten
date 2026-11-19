@@ -1,5 +1,5 @@
 
-@extends('layouts.staff')
+@extends($layout)
 
 @section('title', 'Data '.$judul)
 @section('heading', 'Data '.$judul)
@@ -7,7 +7,7 @@
 @section('content')
 
 @php
-    $routeIndex = 'staff.'.$modul.'.index';
+    $routeIndex = $routePrefix.'.'.$modul.'.index';
 @endphp
 
 <!-- HEADER -->
@@ -167,7 +167,7 @@
         </h3>
 
         <p class="mt-1 text-xs text-gray-500">
-            Data ditampilkan untuk keperluan monitoring Staff KONI.
+            Data ditampilkan untuk keperluan monitoring {{ $routePrefix === 'sekretaris' ? 'Sekretaris' : 'Staff' }} KONI.
         </p>
 
     </div>

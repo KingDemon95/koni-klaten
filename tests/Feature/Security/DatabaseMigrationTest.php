@@ -28,6 +28,11 @@ class DatabaseMigrationTest extends TestCase
             'izin_latihans',
             'publikasis',
             'profil_koni',
+            'inventory_categories',
+            'inventory_items',
+            'inventory_movements',
+            'inventory_loans',
+            'audit_logs',
         ];
 
         foreach ($tables as $table) {
@@ -40,6 +45,11 @@ class DatabaseMigrationTest extends TestCase
         $this->assertDatabaseHas('profil_koni', [
             'nama_singkat' => 'KONI Klaten',
         ]);
+
+        $this->assertTrue(
+            Schema::hasColumn('surats', 'decision_by_role'),
+            'Kolom decision_by_role tidak ditemukan pada tabel surats.'
+        );
 
         $this->assertTrue(
             Schema::hasColumn('prestasis', 'jenis_medali'),

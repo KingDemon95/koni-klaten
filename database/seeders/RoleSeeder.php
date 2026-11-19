@@ -15,6 +15,8 @@ class RoleSeeder extends Seeder
 
         $roles = [
             'admin_koni',
+            'ketua_koni',
+            'sekretaris_koni',
             'staff_koni',
             'admin_cabor',
             'atlet_pelatih',

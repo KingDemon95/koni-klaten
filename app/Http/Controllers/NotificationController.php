@@ -13,7 +13,8 @@ class NotificationController extends Controller
     {
         $user = $request->user();
         $layout = match (true) {
-            $user->hasRole('admin_koni') => 'layouts.admin',
+            $user->hasAnyRole(['admin_koni', 'ketua_koni']) => 'layouts.admin',
+            $user->hasRole('sekretaris_koni') => 'layouts.sekretaris',
             $user->hasRole('staff_koni') => 'layouts.staff',
             $user->hasRole('admin_cabor') => 'layouts.cabor',
             $user->hasRole('pelatih') => 'layouts.pelatih',

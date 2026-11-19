@@ -43,7 +43,7 @@ class SuratController extends Controller
         }
 
         $items = $query
-            ->with(['cabangOlahraga', 'creator', 'staff', 'adminKoni'])
+            ->with(['cabangOlahraga', 'creator', 'staff', 'decisionMaker'])
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -111,11 +111,11 @@ class SuratController extends Controller
     public function show(Request $request, Surat $surat): View
     {
         $surat = $this->findScopedSurat($request, $surat)
-            ->load(['cabangOlahraga', 'creator', 'staff', 'adminKoni']);
+            ->load(['cabangOlahraga', 'creator', 'staff', 'decisionMaker']);
         $prefix = $this->routePrefix($request);
         $activities = $surat->activities()->with('actor')->get();
 
-        // Keputusan Admin KONI tidak dibuka ke Admin Cabor sebelum Staff menyampaikan hasil.
+        // Keputusan pimpinan KONI tidak dibuka ke Admin Cabor sebelum Staff menyampaikan hasil.
         if ($prefix === 'cabor' && $surat->status === Surat::STATUS_MENUNGGU_PENYAMPAIAN) {
             $activities = $activities->reject(fn (SuratActivity $activity) => $activity->action === 'keputusan_admin');
         }
@@ -283,7 +283,7 @@ class SuratController extends Controller
         $surat = $this->findScopedSurat($request, $surat);
 
         // Surat yang merupakan keputusan revisi Admin harus dikembalikan ke Admin Cabor,
-        // bukan boleh diteruskan kembali ke Admin KONI tanpa perbaikan.
+        // bukan boleh diteruskan kembali kepada pimpinan KONI tanpa perbaikan.
         abort_unless($surat->status === Surat::STATUS_DIAJUKAN, 422);
 
         $validated = $request->validate([
@@ -316,11 +316,12 @@ class SuratController extends Controller
                     'admin_response_path' => null,
                     'admin_response_original_name' => null,
                     'admin_koni_id' => null,
+                    'decision_by_role' => null,
                     'diputuskan_at' => null,
                     'disampaikan_at' => null,
                 ]);
 
-                $this->recordActivity($surat, $request, 'surat_diteruskan_admin', Surat::STATUS_DIAJUKAN, Surat::STATUS_DITERUSKAN, $validated['catatan_staff'] ?? 'Surat diteruskan kepada Admin KONI.');
+                $this->recordActivity($surat, $request, 'surat_diteruskan_admin', Surat::STATUS_DIAJUKAN, Surat::STATUS_DITERUSKAN, $validated['catatan_staff'] ?? 'Surat diteruskan kepada pimpinan KONI.');
             });
         } catch (Throwable $exception) {
             if ($attachmentPath) {
@@ -331,20 +332,39 @@ class SuratController extends Controller
 
         Storage::disk('local')->delete(array_filter([$oldStaffPath, $oldAdminResponsePath]));
 
+        $notificationMessage = 'Staff KONI meneruskan surat "'.$surat->perihal.'". Ketua atau Sekretaris KONI dapat memberikan keputusan secara mandiri.';
+
         WorkflowNotifier::toRole(
             'admin_koni',
-            'Surat menunggu keputusan Admin KONI',
-            'Staff KONI meneruskan surat "'.$surat->perihal.'" untuk diputuskan.',
+            'Surat menunggu keputusan',
+            $notificationMessage,
             route('admin.persuratan.show', $surat, false),
             'persuratan',
         );
+        WorkflowNotifier::toRole(
+            'ketua_koni',
+            'Surat menunggu persetujuan Ketua KONI',
+            $notificationMessage,
+            route('admin.persuratan.show', $surat, false),
+            'persuratan',
+        );
+        WorkflowNotifier::toRole(
+            'sekretaris_koni',
+            'Surat menunggu persetujuan Sekretaris KONI',
+            $notificationMessage,
+            route('sekretaris.surat.show', $surat, false),
+            'persuratan',
+        );
 
-        return redirect()->route('staff.surat.show', $surat)->with('success', 'Surat berhasil diteruskan kepada Admin KONI.');
+        return redirect()->route('staff.surat.show', $surat)->with('success', 'Surat berhasil diteruskan kepada Ketua dan Sekretaris KONI untuk diputuskan secara mandiri.');
     }
 
     public function decide(Request $request, Surat $surat): RedirectResponse
     {
-        abort_unless($this->routePrefix($request) === 'admin', 403);
+        $prefix = $this->routePrefix($request);
+        abort_unless(in_array($prefix, ['admin', 'sekretaris'], true), 403);
+        abort_unless($request->user()->hasAnyRole(['admin_koni', 'ketua_koni', 'sekretaris_koni']), 403);
+
         $surat = $this->findScopedSurat($request, $surat);
         abort_unless($surat->status === Surat::STATUS_DITERUSKAN, 422);
 
@@ -370,25 +390,39 @@ class SuratController extends Controller
             ? Surat::STATUS_PERLU_REVISI_STAFF
             : Surat::STATUS_MENUNGGU_PENYAMPAIAN;
 
+        $decisionRole = $request->user()->hasRole('ketua_koni')
+            ? 'ketua_koni'
+            : ($request->user()->hasRole('sekretaris_koni') ? 'sekretaris_koni' : 'admin_koni');
+        $decisionRoleLabel = match ($decisionRole) {
+            'ketua_koni' => 'Ketua KONI',
+            'sekretaris_koni' => 'Sekretaris KONI',
+            default => 'Admin KONI',
+        };
+
         try {
-            DB::transaction(function () use ($surat, $request, $validated, $responsePath, $responseName, $newStatus): void {
-                $surat->update([
+            DB::transaction(function () use ($surat, $request, $validated, $responsePath, $responseName, $newStatus, $decisionRole, $decisionRoleLabel): void {
+                // Kunci baris agar keputusan Ketua dan Sekretaris tidak dapat diproses bersamaan.
+                $lockedSurat = Surat::query()->lockForUpdate()->findOrFail($surat->id);
+                abort_unless($lockedSurat->status === Surat::STATUS_DITERUSKAN, 422, 'Surat sudah diputuskan oleh pengguna lain.');
+
+                $lockedSurat->update([
                     'status' => $newStatus,
                     'keputusan_admin' => $validated['keputusan_admin'],
                     'catatan_admin' => $validated['catatan_admin'] ?? null,
                     'admin_response_path' => $responsePath,
                     'admin_response_original_name' => $responseName,
                     'admin_koni_id' => $request->user()->id,
+                    'decision_by_role' => $decisionRole,
                     'diputuskan_at' => now(),
                 ]);
 
                 $this->recordActivity(
-                    $surat,
+                    $lockedSurat,
                     $request,
                     'keputusan_admin',
                     Surat::STATUS_DITERUSKAN,
                     $newStatus,
-                    $validated['catatan_admin'] ?? ('Keputusan Admin KONI: '.$validated['keputusan_admin'].'.'),
+                    $validated['catatan_admin'] ?? ('Keputusan '.$decisionRoleLabel.': '.$validated['keputusan_admin'].'.'),
                 );
             });
         } catch (Throwable $exception) {
@@ -404,23 +438,43 @@ class SuratController extends Controller
 
         $surat->loadMissing('staff');
         $decisionLabel = match ($validated['keputusan_admin']) {
-            'diterima' => 'diterima',
+            'diterima' => 'disetujui',
             'ditolak' => 'ditolak',
             default => 'memerlukan revisi',
         };
         WorkflowNotifier::toUser(
             $surat->staff,
             'Keputusan surat tersedia',
-            'Admin KONI telah memutuskan surat "'.$surat->perihal.'": '.$decisionLabel.'. Silakan tindak lanjuti dan sampaikan hasilnya.',
+            $decisionRoleLabel.' telah memutuskan surat "'.$surat->perihal.'": '.$decisionLabel.'. Silakan tindak lanjuti dan sampaikan hasilnya.',
             route('staff.surat.show', $surat, false),
             'persuratan',
         );
 
+        $otherApproverRole = match ($decisionRole) {
+            'ketua_koni' => 'sekretaris_koni',
+            'sekretaris_koni' => 'ketua_koni',
+            default => null,
+        };
+        if ($otherApproverRole) {
+            $otherApproverUrl = $otherApproverRole === 'ketua_koni'
+                ? route('admin.persuratan.show', $surat, false)
+                : route('sekretaris.surat.show', $surat, false);
+
+            WorkflowNotifier::toRole(
+                $otherApproverRole,
+                'Surat telah diputuskan',
+                $decisionRoleLabel.' telah memberikan keputusan atas surat "'.$surat->perihal.'". Tidak diperlukan persetujuan kedua.',
+                $otherApproverUrl,
+                'persuratan',
+            );
+        }
+
         $message = $validated['keputusan_admin'] === 'revisi'
             ? 'Keputusan revisi disimpan. Staff KONI perlu meneruskan catatan kepada Admin Cabor.'
-            : 'Keputusan tersimpan. Staff KONI perlu menyampaikan hasil kepada Admin Cabor.';
+            : 'Keputusan '.$decisionRoleLabel.' tersimpan. Staff KONI perlu menyampaikan hasil kepada Admin Cabor.';
+        $detailRoute = $prefix === 'sekretaris' ? 'sekretaris.surat.show' : 'admin.persuratan.show';
 
-        return redirect()->route('admin.persuratan.show', $surat)->with('success', $message);
+        return redirect()->route($detailRoute, $surat)->with('success', $message);
     }
 
     public function deliver(Request $request, Surat $surat): RedirectResponse
@@ -498,7 +552,7 @@ class SuratController extends Controller
     private function queryForUser(Request $request): Builder
     {
         $prefix = $this->routePrefix($request);
-        $query = Surat::query()->with(['cabangOlahraga', 'creator', 'staff', 'adminKoni']);
+        $query = Surat::query()->with(['cabangOlahraga', 'creator', 'staff', 'decisionMaker']);
 
         if ($prefix === 'cabor') {
             $query->where('cabang_olahraga_id', $request->user()->cabang_olahraga_id)
@@ -507,7 +561,7 @@ class SuratController extends Controller
             // Staff hanya menerima surat yang sudah diajukan, bukan draft internal Admin Cabor.
             $query->where('status', '!=', Surat::STATUS_DRAFT);
         } else {
-            // Admin KONI hanya menerima surat yang sudah diteruskan Staff dan memantau tindak lanjutnya.
+            // Admin, Ketua, dan Sekretaris hanya menerima surat yang sudah diteruskan Staff dan memantau tindak lanjutnya.
             $query->whereIn('status', [
                 Surat::STATUS_DITERUSKAN,
                 Surat::STATUS_PERLU_REVISI_STAFF,
@@ -532,6 +586,7 @@ class SuratController extends Controller
         return [
             'layout' => match ($prefix) {
                 'admin' => 'layouts.admin',
+                'sekretaris' => 'layouts.sekretaris',
                 'staff' => 'layouts.staff',
                 'cabor' => 'layouts.cabor',
             },
@@ -549,7 +604,7 @@ class SuratController extends Controller
             return 'admin';
         }
 
-        foreach (['staff', 'cabor'] as $prefix) {
+        foreach (['staff', 'sekretaris', 'cabor'] as $prefix) {
             if (str_starts_with($name, $prefix.'.surat.')) {
                 return $prefix;
             }

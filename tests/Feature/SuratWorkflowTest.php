@@ -21,7 +21,7 @@ class SuratWorkflowTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['admin_koni', 'staff_koni', 'admin_cabor', 'atlet', 'pelatih', 'atlet_pelatih'] as $role) {
+        foreach (['admin_koni', 'ketua_koni', 'sekretaris_koni', 'staff_koni', 'admin_cabor', 'atlet', 'pelatih', 'atlet_pelatih'] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
 

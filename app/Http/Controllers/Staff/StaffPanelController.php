@@ -205,6 +205,10 @@ class StaffPanelController extends Controller
             ->orderBy('nama')
             ->get(['id', 'nama']);
 
+        $routeName = $request->route()?->getName() ?? '';
+        $routePrefix = str_starts_with($routeName, 'sekretaris.') ? 'sekretaris' : 'staff';
+        $layout = $routePrefix === 'sekretaris' ? 'layouts.sekretaris' : 'layouts.staff';
+
         return view('staff.daftar', compact(
             'modul',
             'judul',
@@ -215,7 +219,9 @@ class StaffPanelController extends Controller
             'cabors',
             'total',
             'aktif',
-            'nonaktif'
+            'nonaktif',
+            'routePrefix',
+            'layout'
         ));
     }
 }

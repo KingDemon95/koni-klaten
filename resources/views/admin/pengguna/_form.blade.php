@@ -128,7 +128,15 @@
                     Admin KONI
                 </option>
 
-                <option value="staff_koni" @selected($currentRole === 'staff_koni')}>
+                <option value="ketua_koni" @selected($currentRole === 'ketua_koni')>
+                    Ketua KONI
+                </option>
+
+                <option value="sekretaris_koni" @selected($currentRole === 'sekretaris_koni')>
+                    Sekretaris KONI
+                </option>
+
+                <option value="staff_koni" @selected($currentRole === 'staff_koni')>
                     Staff KONI
                 </option>
 

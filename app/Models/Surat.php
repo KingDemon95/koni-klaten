@@ -22,6 +22,7 @@ class Surat extends Model
         'created_by',
         'staff_id',
         'admin_koni_id',
+        'decision_by_role',
         'perihal',
         'jenis_surat',
         'nomor_surat',
@@ -69,9 +70,17 @@ class Surat extends Model
         return $this->belongsTo(User::class, 'staff_id');
     }
 
-    public function adminKoni(): BelongsTo
+    public function decisionMaker(): BelongsTo
     {
         return $this->belongsTo(User::class, 'admin_koni_id');
+    }
+
+    /**
+     * Alias lama dipertahankan untuk kompatibilitas dengan modul sebelumnya.
+     */
+    public function adminKoni(): BelongsTo
+    {
+        return $this->decisionMaker();
     }
 
     public function activities(): HasMany
@@ -85,7 +94,7 @@ class Surat extends Model
             self::STATUS_DRAFT => 'Draft',
             self::STATUS_DIAJUKAN => 'Menunggu pemeriksaan Staff',
             self::STATUS_REVISI => 'Perlu revisi Admin Cabor',
-            self::STATUS_DITERUSKAN => 'Diteruskan ke Admin KONI',
+            self::STATUS_DITERUSKAN => 'Menunggu persetujuan Pimpinan KONI',
             self::STATUS_PERLU_REVISI_STAFF => 'Keputusan revisi menunggu Staff',
             self::STATUS_MENUNGGU_PENYAMPAIAN => 'Menunggu penyampaian hasil',
             self::STATUS_DITERIMA => 'Diterima',

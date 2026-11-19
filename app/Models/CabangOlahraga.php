@@ -69,4 +69,14 @@ class CabangOlahraga extends Model
     {
         return $this->hasMany(IzinLatihan::class, 'cabang_olahraga_id');
     }
+
+    public function inventoryItems(): HasMany
+    {
+        return $this->hasMany(InventoryItem::class, 'cabang_olahraga_id');
+    }
+
+    public function inventoryCategories(): HasMany
+    {
+        return $this->hasMany(InventoryCategory::class, 'cabang_olahraga_id');
+    }
 }

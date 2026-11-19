@@ -9,6 +9,8 @@
 @php
     $roleLabels = [
         'admin_koni' => 'Admin KONI',
+        'ketua_koni' => 'Ketua KONI',
+        'sekretaris_koni' => 'Sekretaris KONI',
         'staff_koni' => 'Staff KONI',
         'admin_cabor' => 'Admin Cabor',
         'atlet' => 'Atlet',
@@ -173,6 +175,8 @@
 
                         $roleClass = match($roleName) {
                             'admin_koni' => 'bg-red-100 text-red-700',
+                            'ketua_koni' => 'bg-amber-100 text-amber-800',
+                            'sekretaris_koni' => 'bg-indigo-100 text-indigo-800',
                             'staff_koni' => 'bg-blue-100 text-blue-700',
                             'admin_cabor' => 'bg-purple-100 text-purple-700',
                             'atlet' => 'bg-green-100 text-green-700',

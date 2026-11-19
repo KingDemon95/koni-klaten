@@ -13,7 +13,7 @@
         <p class="text-xs font-bold tracking-[0.2em] text-yellow-300">SISTEM ADMINISTRASI KONI KLATEN</p>
         <h2 class="mt-2 text-2xl font-black">Manajemen Persuratan</h2>
         <p class="mt-2 max-w-3xl text-sm leading-relaxed text-gray-200">
-            Surat dari Admin Cabor wajib diperiksa Staff KONI terlebih dahulu sebelum diteruskan kepada Admin KONI. Riwayat proses dan keputusan tercatat pada setiap surat.
+            Surat dari Admin Cabor diperiksa Staff KONI terlebih dahulu, lalu diteruskan kepada Ketua, Sekretaris, atau Admin KONI untuk satu keputusan. Riwayat proses dan keputusan tercatat pada setiap surat.
         </p>
     </section>
 
@@ -35,8 +35,10 @@
                         Surat yang dibuat oleh cabang olahraga {{ $cabor?->nama }}.
                     @elseif ($prefix === 'staff')
                         Antrean pemeriksaan, penerusan, dan penyampaian hasil surat.
+                    @elseif ($prefix === 'sekretaris')
+                        Surat yang diteruskan Staff KONI dan menunggu keputusan Sekretaris atau pimpinan lain.
                     @else
-                        Surat yang telah diteruskan oleh Staff KONI untuk keputusan Admin KONI.
+                        Surat yang telah diteruskan Staff KONI untuk keputusan pimpinan KONI.
                     @endif
                 </p>
             </div>

@@ -21,6 +21,8 @@ class AdminKoniSecurityTest extends TestCase
 
         $roles = [
             'admin_koni',
+            'ketua_koni',
+            'sekretaris_koni',
             'admin_cabor',
             'staff_koni',
             'atlet',
@@ -101,13 +103,47 @@ class AdminKoniSecurityTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_ketua_can_manage_organization_data_but_not_system_accounts_or_settings(): void
+    {
+        $ketua = $this->createUserWithRole('ketua_koni');
+
+        $this->actingAs($ketua)
+            ->get(route('dashboard.ketua-koni'))
+            ->assertOk();
+
+        $this->actingAs($ketua)
+            ->get(route('dashboard.admin-koni'))
+            ->assertForbidden();
+
+        $this->actingAs($ketua)
+            ->get(route('admin.cabor.index'))
+            ->assertOk();
+
+        $this->actingAs($ketua)
+            ->get(route('admin.atlet.index'))
+            ->assertOk();
+
+        $this->actingAs($ketua)
+            ->get(route('admin.persuratan.index'))
+            ->assertOk();
+
+        $this->actingAs($ketua)
+            ->get(route('admin.pengguna.index'))
+            ->assertForbidden();
+
+        $this->actingAs($ketua)
+            ->get(route('admin.settings'))
+            ->assertForbidden();
+    }
+
     /**
-     * Role selain Admin KONI tidak boleh masuk panel Admin KONI.
+     * Role selain Admin dan Ketua KONI tidak boleh masuk panel pengelolaan organisasi.
      */
     public function test_other_roles_cannot_access_admin_koni_panel(): void
     {
         $roles = [
             'admin_cabor',
+            'sekretaris_koni',
             'staff_koni',
             'atlet',
             'pelatih',

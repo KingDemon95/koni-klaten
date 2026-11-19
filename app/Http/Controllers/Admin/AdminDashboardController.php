@@ -32,6 +32,8 @@ class AdminDashboardController extends Controller
 
         $roleCounts = [
             'Admin KONI' => User::role('admin_koni')->count(),
+            'Ketua KONI' => User::query()->whereHas('roles', fn ($query) => $query->where('name', 'ketua_koni'))->count(),
+            'Sekretaris KONI' => User::query()->whereHas('roles', fn ($query) => $query->where('name', 'sekretaris_koni'))->count(),
             'Staff KONI' => User::role('staff_koni')->count(),
             'Admin Cabor' => User::role('admin_cabor')->count(),
             'Atlet' => User::role('atlet')->count(),

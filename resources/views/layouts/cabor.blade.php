@@ -82,6 +82,8 @@
                 Laporan & Rekapitulasi
             </a>
 
+            <a href="{{ route('cabor.inventaris.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('cabor.inventaris.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Inventaris</a>
+
             <a href="{{ route('cabor.agenda.index') }}"
                class="block rounded-xl px-4 py-3 text-sm font-semibold
                {{ request()->routeIs('cabor.agenda.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">
@@ -102,6 +104,8 @@
 
             <a href="{{ route('cabor.prestasi.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('cabor.prestasi.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Verifikasi Prestasi</a>
             <a href="{{ route('cabor.izin-latihan.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('cabor.izin-latihan.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Izin Latihan</a>
+
+            <a href="{{ route('cabor.audit.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('cabor.audit.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Riwayat Aktivitas</a>
         </nav>
 
         <div class="border-t border-white/10 p-5 text-xs text-gray-400">
@@ -129,11 +133,13 @@
                         <a href="{{ route('cabor.pelatih.index') }}">Data Pelatih</a>
                         <a href="{{ route('cabor.pengurus.index') }}">Struktur Organisasi</a>
                         <a href="{{ route('cabor.laporan.index') }}">Laporan & Rekapitulasi</a>
+                        <a href="{{ route('cabor.inventaris.index') }}">Inventaris</a>
                         <a href="{{ route('cabor.agenda.index') }}">Agenda & Kejuaraan</a>
                         <a href="{{ route('cabor.surat.index') }}">Persuratan</a>
                         <a href="{{ route('cabor.templates.index') }}">Template Surat</a>
                         <a href="{{ route('cabor.prestasi.index') }}">Verifikasi Prestasi</a>
                         <a href="{{ route('cabor.izin-latihan.index') }}">Izin Latihan</a>
+                        <a href="{{ route('cabor.audit.index') }}">Riwayat Aktivitas</a>
                     </nav>
                 </details>
 

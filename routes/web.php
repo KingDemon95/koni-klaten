@@ -17,10 +17,52 @@ use App\Http\Controllers\Cabor\IzinLatihanController as CaborIzinLatihanControll
 use App\Http\Controllers\PublikasiController;
 use App\Http\Controllers\PublicPublikasiController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\PimpinanDashboardController;
 use App\Http\Controllers\Admin\ProfilKoniController;
 use App\Http\Controllers\Admin\PrestasiMonitoringController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AuditLogController;
+
+
+// Rute inventaris dipakai bersama oleh beberapa role. Mode akses menentukan
+// apakah pengguna dapat mengelola master, menjalankan transaksi, atau hanya membaca.
+$registerInventoryRoutes = static function (string $mode): void {
+    $categoryController = \App\Http\Controllers\Inventory\InventoryCategoryController::class;
+    $itemController = \App\Http\Controllers\Inventory\InventoryController::class;
+    $movementController = \App\Http\Controllers\Inventory\InventoryMovementController::class;
+    $loanController = \App\Http\Controllers\Inventory\InventoryLoanController::class;
+    $reportController = \App\Http\Controllers\Inventory\InventoryReportController::class;
+
+    Route::get('inventaris/kategori', [$categoryController, 'index'])->name('inventaris.kategori.index');
+    Route::get('inventaris/laporan', [$reportController, 'index'])->name('inventaris.laporan');
+    Route::get('inventaris/laporan/export', [$reportController, 'export'])->name('inventaris.laporan.export');
+
+    if ($mode === 'manage') {
+        Route::post('inventaris/kategori', [$categoryController, 'store'])->name('inventaris.kategori.store');
+        Route::put('inventaris/kategori/{category}', [$categoryController, 'update'])->whereNumber('category')->name('inventaris.kategori.update');
+        Route::delete('inventaris/kategori/{category}', [$categoryController, 'destroy'])->whereNumber('category')->name('inventaris.kategori.destroy');
+
+        Route::post('inventaris/{inventoryItem}/mutasi', [$movementController, 'store'])->whereNumber('inventoryItem')->name('inventaris.mutasi');
+        Route::post('inventaris/{inventoryItem}/peminjaman', [$loanController, 'store'])->whereNumber('inventoryItem')->name('inventaris.peminjaman.store');
+        Route::post('inventaris/peminjaman/{inventoryLoan}/kembali', [$loanController, 'return'])->whereNumber('inventoryLoan')->name('inventaris.peminjaman.return');
+
+        Route::resource('inventaris', $itemController)->parameters(['inventaris' => 'inventoryItem']);
+        return;
+    }
+
+    if ($mode === 'operate') {
+        Route::get('inventaris', [$itemController, 'index'])->name('inventaris.index');
+        Route::get('inventaris/{inventoryItem}', [$itemController, 'show'])->whereNumber('inventoryItem')->name('inventaris.show');
+        Route::post('inventaris/{inventoryItem}/mutasi', [$movementController, 'store'])->whereNumber('inventoryItem')->name('inventaris.mutasi');
+        Route::post('inventaris/{inventoryItem}/peminjaman', [$loanController, 'store'])->whereNumber('inventoryItem')->name('inventaris.peminjaman.store');
+        Route::post('inventaris/peminjaman/{inventoryLoan}/kembali', [$loanController, 'return'])->whereNumber('inventoryLoan')->name('inventaris.peminjaman.return');
+        return;
+    }
+
+    Route::get('inventaris', [$itemController, 'index'])->name('inventaris.index');
+    Route::get('inventaris/{inventoryItem}', [$itemController, 'show'])->whereNumber('inventoryItem')->name('inventaris.show');
+};
 
 Route::get('/', [PublicPortalController::class, 'home'])->name('public.home');
 Route::get('/sitemap.xml', \App\Http\Controllers\SitemapController::class)->name('public.sitemap');
@@ -53,6 +95,14 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('dashboard.admin-koni');
         }
 
+        if ($user->hasRole('ketua_koni')) {
+            return redirect()->route('dashboard.ketua-koni');
+        }
+
+        if ($user->hasRole('sekretaris_koni')) {
+            return redirect()->route('dashboard.sekretaris-koni');
+        }
+
         if ($user->hasRole('staff_koni')) {
             return redirect()->route('dashboard.staff-koni');
         }
@@ -82,6 +132,15 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:admin_koni')
         ->name('dashboard.admin-koni');
 
+
+    // Dashboard Ketua dan Sekretaris KONI.
+    Route::get('/dashboard/ketua-koni', [PimpinanDashboardController::class, 'ketua'])
+        ->middleware('role:ketua_koni')
+        ->name('dashboard.ketua-koni');
+
+    Route::get('/dashboard/sekretaris-koni', [PimpinanDashboardController::class, 'sekretaris'])
+        ->middleware('role:sekretaris_koni')
+        ->name('dashboard.sekretaris-koni');
 
     // Dashboard Staff KONI
     Route::get(
@@ -128,32 +187,19 @@ Route::middleware('auth')->group(function () {
 });
 
 
-Route::middleware(['auth', 'role:admin_koni'])
+// Modul pengelolaan organisasi dapat diakses Admin dan Ketua KONI.
+// Manajemen akun dan pengaturan sistem tetap khusus Admin KONI.
+Route::middleware(['auth', 'role:admin_koni|ketua_koni'])
     ->prefix('admin')
     ->name('admin.')
-    ->group(function () {
+    ->group(function () use ($registerInventoryRoutes) {
 
-    Route::resource(
-        'cabor',
-        \App\Http\Controllers\Admin\CabangOlahragaController::class
-    )->except(['show']);
+    Route::resource('cabor', \App\Http\Controllers\Admin\CabangOlahragaController::class)->except(['show']);
+    Route::resource('atlet', \App\Http\Controllers\Admin\AtletController::class)->except(['show']);
+    Route::resource('pelatih', \App\Http\Controllers\Admin\PelatihController::class)->except(['show']);
+    Route::resource('struktur-organisasi', \App\Http\Controllers\Admin\StrukturOrganisasiController::class)->except(['show']);
 
-
-    Route::resource(
-        'atlet',
-        \App\Http\Controllers\Admin\AtletController::class
-    )->except(['show']);
-
-    Route::resource(
-        'pelatih',
-        \App\Http\Controllers\Admin\PelatihController::class
-    )->except(['show']);
-
-    Route::resource(
-        'struktur-organisasi',
-        \App\Http\Controllers\Admin\StrukturOrganisasiController::class
-    )->except(['show']);
-
+    Route::get('riwayat-aktivitas', [AuditLogController::class, 'index'])->name('audit.index');
     Route::get('prestasi', [PrestasiMonitoringController::class, 'index'])->name('prestasi.index');
     Route::get('prestasi/{prestasi}/bukti', [PrestasiMonitoringController::class, 'download'])->name('prestasi.bukti');
 
@@ -161,14 +207,12 @@ Route::middleware(['auth', 'role:admin_koni'])
     Route::post('agenda/{agenda}/revisi', [AgendaController::class, 'requestRevision'])->name('agenda.revisi');
     Route::resource('agenda', AgendaController::class)->except(['show']);
 
-
-    // Nama dan URL Persuratan Admin KONI dibuat eksplisit agar konsisten dengan menu panel.
     Route::get('persuratan', [SuratController::class, 'index'])->name('persuratan.index');
     Route::get('persuratan/{surat}', [SuratController::class, 'show'])->name('persuratan.show');
     Route::post('persuratan/{surat}/keputusan', [SuratController::class, 'decide'])->name('persuratan.keputusan');
     Route::get('persuratan/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('persuratan.file');
 
-    // Alias URL lama dipertahankan agar tautan yang sudah pernah digunakan tidak langsung rusak.
+    // Alias URL lama dipertahankan agar tautan yang sudah pernah digunakan tetap berfungsi.
     Route::get('surat', [SuratController::class, 'index'])->name('surat.index');
     Route::get('surat/{surat}', [SuratController::class, 'show'])->name('surat.show');
     Route::post('surat/{surat}/keputusan', [SuratController::class, 'decide'])->name('surat.keputusan');
@@ -180,27 +224,56 @@ Route::middleware(['auth', 'role:admin_koni'])
     Route::delete('templates-surat/{template}', [TemplateSuratController::class, 'destroy'])->name('templates.destroy');
     Route::get('templates-surat/{template}/download', [TemplateSuratController::class, 'download'])->name('templates.download');
 
-
     Route::get('publikasi/{publikasi}/media/{variant?}', [PublikasiController::class, 'media'])
         ->whereIn('variant', ['media', 'thumbnail'])->name('publikasi.media');
     Route::post('publikasi/{publikasi}/publish', [PublikasiController::class, 'publish'])->name('publikasi.publish');
     Route::resource('publikasi', PublikasiController::class);
-
-
-    Route::resource(
-        'pengguna',
-        \App\Http\Controllers\Admin\PenggunaController::class
-    )->except(['show']);
-
 
     Route::get('laporan', [ReportController::class, 'index'])->name('laporan.index');
     Route::get('laporan/export/{jenis}', [ReportController::class, 'export'])
         ->whereIn('jenis', ['cabor', 'prestasi'])
         ->name('laporan.export');
 
+    $registerInventoryRoutes('manage');
+});
+
+Route::middleware(['auth', 'role:admin_koni'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+    Route::resource('pengguna', \App\Http\Controllers\Admin\PenggunaController::class)->except(['show']);
     Route::get('/pengaturan', [ProfilKoniController::class, 'edit'])->name('settings');
     Route::put('/pengaturan', [ProfilKoniController::class, 'update'])->name('settings.update');
+});
 
+// Sekretaris memiliki akses baca data organisasi, persuratan, template, dan laporan.
+Route::middleware(['auth', 'role:sekretaris_koni'])
+    ->prefix('sekretaris')
+    ->name('sekretaris.')
+    ->group(function () use ($registerInventoryRoutes) {
+    Route::get('riwayat-aktivitas', [AuditLogController::class, 'index'])->name('audit.index');
+    Route::get('cabor', [StaffPanelController::class, 'cabor'])->name('cabor.index');
+    Route::get('atlet', [StaffPanelController::class, 'atlet'])->name('atlet.index');
+    Route::get('pelatih', [StaffPanelController::class, 'pelatih'])->name('pelatih.index');
+    Route::get('pengurus', [StaffPanelController::class, 'pengurus'])->name('pengurus.index');
+
+    Route::get('surat', [SuratController::class, 'index'])->name('surat.index');
+    Route::get('surat/{surat}', [SuratController::class, 'show'])->name('surat.show');
+    Route::post('surat/{surat}/keputusan', [SuratController::class, 'decide'])->name('surat.keputusan');
+    Route::get('surat/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('surat.file');
+
+    Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
+    Route::post('templates-surat', [TemplateSuratController::class, 'store'])->name('templates.store');
+    Route::put('templates-surat/{template}', [TemplateSuratController::class, 'update'])->name('templates.update');
+    Route::delete('templates-surat/{template}', [TemplateSuratController::class, 'destroy'])->name('templates.destroy');
+    Route::get('templates-surat/{template}/download', [TemplateSuratController::class, 'download'])->name('templates.download');
+
+    Route::get('laporan', [ReportController::class, 'index'])->name('laporan.index');
+    Route::get('laporan/export/{jenis}', [ReportController::class, 'export'])
+        ->whereIn('jenis', ['cabor', 'prestasi'])
+        ->name('laporan.export');
+
+    $registerInventoryRoutes('read');
 });
 
 Route::middleware([
@@ -210,7 +283,9 @@ Route::middleware([
     ])
     ->prefix('cabor')
     ->name('cabor.')
-    ->group(function () {
+    ->group(function () use ($registerInventoryRoutes) {
+
+    Route::get('/riwayat-aktivitas', [AuditLogController::class, 'index'])->name('audit.index');
 
     Route::get(
         '/atlet',
@@ -269,6 +344,7 @@ Route::middleware([
     Route::post('izin-latihan/{izinLatihan}/keputusan', [CaborIzinLatihanController::class, 'decide'])->name('izin-latihan.keputusan');
     Route::get('izin-latihan/{izinLatihan}/download', [CaborIzinLatihanController::class, 'download'])->name('izin-latihan.download');
 
+    $registerInventoryRoutes('manage');
 });
 
 Route::middleware([
@@ -277,7 +353,9 @@ Route::middleware([
     ])
     ->prefix('staff')
     ->name('staff.')
-    ->group(function () {
+    ->group(function () use ($registerInventoryRoutes) {
+
+    Route::get('/riwayat-aktivitas', [AuditLogController::class, 'index'])->name('audit.index');
 
     Route::get(
         '/cabor',
@@ -326,6 +404,7 @@ Route::middleware([
     Route::post('publikasi/{publikasi}/publish', [PublikasiController::class, 'publish'])->name('publikasi.publish');
     Route::resource('publikasi', PublikasiController::class);
 
+    $registerInventoryRoutes('operate');
 });
 
 Route::middleware([
