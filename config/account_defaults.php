@@ -5,9 +5,10 @@
 | Password Awal Akun Otomatis (DEMO)
 |--------------------------------------------------------------------------
 |
-| Password berikut dipakai bersama oleh akun dengan role yang sama.
-| Ini hanya untuk demo dengan data fiktif. Ganti seluruh nilai ini
-| dengan kebijakan password yang aman sebelum aplikasi dipakai produksi.
+| Password berikut dipakai bersama oleh akun dengan role yang sama
+| sebagai kredensial sementara. Setiap akun otomatis wajib mengganti
+| password pada login pertama. Ganti seluruh nilai ini dengan kebijakan
+| password awal yang aman sebelum aplikasi dipakai produksi.
 |
 */
 

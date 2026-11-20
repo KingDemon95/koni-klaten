@@ -83,6 +83,8 @@ class AuditLog extends Model
             'role_assigned' => 'Memberikan hak akses',
             'role_changed' => 'Mengubah hak akses',
             'password_changed' => 'Mengubah kata sandi',
+            'backup_remote_synced' => 'Menyinkronkan backup off-site',
+            'backup_remote_failed' => 'Gagal menyinkronkan backup off-site',
             'login' => 'Login ke sistem',
             'logout' => 'Logout dari sistem',
         ];

@@ -106,6 +106,7 @@
             <a href="{{ route('cabor.izin-latihan.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('cabor.izin-latihan.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Izin Latihan</a>
 
             <a href="{{ route('cabor.audit.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('cabor.audit.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Riwayat Aktivitas</a>
+            <a href="{{ route('account.password.edit') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('account.password.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Keamanan Akun</a>
         </nav>
 
         <div class="border-t border-white/10 p-5 text-xs text-gray-400">
@@ -140,6 +141,7 @@
                         <a href="{{ route('cabor.prestasi.index') }}">Verifikasi Prestasi</a>
                         <a href="{{ route('cabor.izin-latihan.index') }}">Izin Latihan</a>
                         <a href="{{ route('cabor.audit.index') }}">Riwayat Aktivitas</a>
+                        <a href="{{ route('account.password.edit') }}">Keamanan Akun</a>
                     </nav>
                 </details>
 

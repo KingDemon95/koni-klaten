@@ -8,6 +8,7 @@ use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\RequirePasswordChange;
 use App\Http\Middleware\EnsureAdminCaborAssigned;
 use App\Http\Middleware\SecurityHeaders;
 
@@ -31,6 +32,7 @@ $middleware->trustProxies(
         $middleware->web(append: [
             EnsureUserIsActive::class,
             SecurityHeaders::class,
+            RequirePasswordChange::class,
         ]);
 
         // Middleware Spatie Permission.

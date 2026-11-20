@@ -267,6 +267,12 @@
 
                             @endif
 
+                            @if($pengguna->must_change_password)
+                                <p class="mt-2">
+                                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">Wajib ganti password</span>
+                                </p>
+                            @endif
+
                         </td>
 
 

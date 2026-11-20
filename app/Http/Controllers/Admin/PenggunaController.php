@@ -202,6 +202,8 @@ $search = mb_substr(
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => $validated['password'],
+                'must_change_password' => true,
+                'password_changed_at' => null,
 
                 'cabang_olahraga_id' =>
                     $validated['role'] === 'admin_cabor'
@@ -458,6 +460,8 @@ $search = mb_substr(
             // Password hanya diperbarui jika diisi.
             if (!empty($validated['password'])) {
                 $data['password'] = $validated['password'];
+                $data['must_change_password'] = true;
+                $data['password_changed_at'] = null;
             }
 
             $pengguna->update($data);

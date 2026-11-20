@@ -55,5 +55,15 @@ class DatabaseMigrationTest extends TestCase
             Schema::hasColumn('prestasis', 'jenis_medali'),
             'Kolom jenis_medali tidak ditemukan pada tabel prestasis.'
         );
+
+        $this->assertTrue(
+            Schema::hasColumn('users', 'must_change_password'),
+            'Kolom must_change_password tidak ditemukan pada tabel users.'
+        );
+
+        $this->assertTrue(
+            Schema::hasColumn('users', 'password_changed_at'),
+            'Kolom password_changed_at tidak ditemukan pada tabel users.'
+        );
     }
 }

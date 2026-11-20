@@ -80,6 +80,7 @@
             <a href="{{ route('pelatih.prestasi.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('pelatih.prestasi.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Prestasi Saya</a>
             <a href="{{ route('pelatih.izin-latihan.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('pelatih.izin-latihan.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Izin Latihan</a>
             <a href="{{ route('pelatih.templates.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('pelatih.templates.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Template Surat Izin</a>
+            <a href="{{ route('account.password.edit') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('account.password.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Keamanan Akun</a>
         </nav>
 
         <div class="border-t border-white/10 p-5">
@@ -121,6 +122,7 @@
                         <a href="{{ route('pelatih.prestasi.index') }}">Prestasi Saya</a>
                         <a href="{{ route('pelatih.izin-latihan.index') }}">Izin Latihan</a>
                         <a href="{{ route('pelatih.templates.index') }}">Template Surat Izin</a>
+                        <a href="{{ route('account.password.edit') }}">Keamanan Akun</a>
 
                     </nav>
 

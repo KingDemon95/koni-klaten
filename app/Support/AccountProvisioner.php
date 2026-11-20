@@ -31,6 +31,8 @@ class AccountProvisioner
             'name' => trim($name),
             'email' => mb_strtolower(trim($email)),
             'password' => $password,
+            'must_change_password' => true,
+            'password_changed_at' => null,
             'cabang_olahraga_id' => $role === 'admin_cabor' ? $cabangOlahragaId : null,
             'is_active' => $active,
         ]);

@@ -19,8 +19,11 @@ $items = [
 
 if (!$isKetua) {
     $items[] = ['label' => 'Manajemen Pengguna', 'route' => 'admin.pengguna.index', 'active' => 'admin.pengguna.*'];
+    $items[] = ['label' => 'Kesehatan Sistem', 'route' => 'admin.system-health', 'active' => 'admin.system-health'];
     $items[] = ['label' => 'Profil & Pengaturan KONI', 'route' => 'admin.settings', 'active' => 'admin.settings'];
 }
+
+$items[] = ['label' => 'Keamanan Akun', 'route' => 'account.password.edit', 'active' => 'account.password.*'];
 @endphp
 
 @foreach ($items as $item)

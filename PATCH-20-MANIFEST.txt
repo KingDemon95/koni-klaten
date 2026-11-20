@@ -1,0 +1,38 @@
+KONI KLATEN — PATCH 20
+Backup Off-site dan Monitoring Sistem
+
+Basis: source project yang diunggah pengguna + Patch 19 yang telah dinyatakan lulus 153 tests.
+
+FILES
+.env.example
+app/Console/Commands/RecordSchedulerHeartbeat.php
+app/Console/Commands/ShowSystemHealth.php
+app/Console/Commands/SyncDatabaseBackupToRemote.php
+app/Http/Controllers/SystemHealthController.php
+app/Models/AuditLog.php
+app/Support/Backups/RemoteBackupManager.php
+app/Support/Monitoring/SystemHealthService.php
+config/koni-backups.php
+routes/console.php
+routes/web.php
+resources/views/admin/partials/nav-links.blade.php
+resources/views/system/health.blade.php
+tests/Feature/SystemHealthTest.php
+docs/PATCH-20-OFFSITE-MONITORING.md
+PATCH-20-INSTRUKSI.md
+
+DATABASE
+No migration required.
+
+FRONTEND
+No npm build required.
+
+NEW TESTS
+9 tests in Tests\Feature\SystemHealthTest.
+
+SECURITY
+- Off-site storage uses private visibility.
+- Credentials are read from environment/config only.
+- Monitoring route is restricted to admin_koni.
+- Remote sync validates local backup first and verifies remote SHA-256.
+- Restore remains CLI-only.

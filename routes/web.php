@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\PrestasiMonitoringController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\SystemHealthController;
 
 
 // Rute inventaris dipakai bersama oleh beberapa role. Mode akses menentukan
@@ -81,6 +82,11 @@ Route::get('/dokumentasi/{publikasi:slug}', [PublicPublikasiController::class, '
 Route::get('/publikasi/{publikasi:slug}/media/{variant?}', [PublicPublikasiController::class, 'media'])->whereIn('variant', ['media', 'thumbnail'])->name('public.publikasi.media');
 
 Route::middleware('auth')->group(function () {
+
+    Route::get('/akun/keamanan/password', [\App\Http\Controllers\AccountSecurityController::class, 'edit'])
+        ->name('account.password.edit');
+    Route::put('/akun/keamanan/password', [\App\Http\Controllers\AccountSecurityController::class, 'update'])
+        ->name('account.password.update');
 
     Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifikasi/baca-semua', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
@@ -243,6 +249,7 @@ Route::middleware(['auth', 'role:admin_koni'])
     ->group(function () {
     Route::resource('pengguna', \App\Http\Controllers\Admin\PenggunaController::class)->except(['show']);
     Route::get('/pengaturan', [ProfilKoniController::class, 'edit'])->name('settings');
+    Route::get('/kesehatan-sistem', [SystemHealthController::class, 'index'])->name('system-health');
     Route::put('/pengaturan', [ProfilKoniController::class, 'update'])->name('settings.update');
 });
 

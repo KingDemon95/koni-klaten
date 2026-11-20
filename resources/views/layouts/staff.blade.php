@@ -70,6 +70,7 @@
             <a href="{{ route('staff.inventaris.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('staff.inventaris.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Inventaris KONI</a>
 
             <a href="{{ route('staff.audit.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('staff.audit.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Riwayat Aktivitas Saya</a>
+            <a href="{{ route('account.password.edit') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('account.password.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Keamanan Akun</a>
 
             @foreach([
                 'cabor' => 'Cabang Olahraga',
@@ -161,6 +162,7 @@
                         </a>
 
                         <a href="{{ route('staff.audit.index') }}">Riwayat Aktivitas Saya</a>
+                        <a href="{{ route('account.password.edit') }}">Keamanan Akun</a>
 
                         <a href="{{ route('staff.cabor.index') }}">
                             Cabang Olahraga
