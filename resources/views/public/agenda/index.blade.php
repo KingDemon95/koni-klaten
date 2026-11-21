@@ -1,7 +1,7 @@
 @extends('layouts.public')
 @section('title', 'Agenda & Kejuaraan')
 @section('content')
-<section class="bg-[#17191F] py-14 text-white sm:py-20"><div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><p class="text-xs font-black tracking-[0.2em] text-red-300">INFORMASI OLAHRAGA</p><h1 class="mt-3 text-3xl font-black sm:text-5xl">Agenda & Kejuaraan</h1><p class="mt-4 max-w-2xl text-sm leading-7 text-slate-300">Ikuti kegiatan, agenda organisasi, dan kejuaraan olahraga KONI Kabupaten Klaten.</p></div></section>
+<section class="public-page-hero bg-[#17191F] py-14 text-white sm:py-20"><div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><p class="text-xs font-black tracking-[0.2em] text-red-300">INFORMASI OLAHRAGA</p><h1 class="mt-3 text-3xl font-black sm:text-5xl">Agenda & Kejuaraan</h1><p class="mt-4 max-w-2xl text-sm leading-7 text-slate-300">Ikuti kegiatan, agenda organisasi, dan kejuaraan olahraga KONI Kabupaten Klaten.</p></div></section>
 <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
     <form method="GET" action="{{ route('public.agenda.index') }}" class="mb-8 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-[1fr_220px_auto]">
         <input type="search" name="q" value="{{ $search }}" placeholder="Cari agenda, lokasi, atau cabor..." class="rounded-lg border-slate-300 text-sm focus:border-red-500 focus:ring-red-500">

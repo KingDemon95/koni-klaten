@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\ProfilKoni;
+use App\Models\WebsiteAppearanceSetting;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use App\Models\Atlet;
@@ -75,7 +76,33 @@ class AppServiceProvider extends ServiceProvider
         });
 
         View::composer('layouts.public', function ($view): void {
-            $view->with('profilKoni', ProfilKoni::query()->first());
+            $setting = WebsiteAppearanceSetting::current();
+            $isPreview = request()->boolean('appearance_preview')
+                && auth()->user()?->hasRole('admin_koni');
+
+            $config = $isPreview
+                ? ($setting->draft_config ?? WebsiteAppearanceSetting::defaultConfig())
+                : ($setting->published_config ?? WebsiteAppearanceSetting::defaultConfig());
+
+            $pageKey = WebsiteAppearanceSetting::pageKeyForRoute(request()->route()?->getName());
+            $pageAppearance = data_get($config, 'pages.'.$pageKey, []);
+            $fontFamily = match ($config['font_family'] ?? 'figtree') {
+                'inter' => 'Inter, ui-sans-serif, system-ui, sans-serif',
+                'system' => 'system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+                default => 'Figtree, ui-sans-serif, system-ui, sans-serif',
+            };
+
+            $view->with([
+                'profilKoni' => ProfilKoni::query()->first(),
+                'websiteAppearance' => $config,
+                'websitePageKey' => $pageKey,
+                'websitePageAppearance' => $pageAppearance,
+                'websitePageBackdropUrl' => ! empty($pageAppearance['backdrop_path'])
+                    ? asset('storage/'.$pageAppearance['backdrop_path'])
+                    : null,
+                'websiteFontFamily' => $fontFamily,
+                'websiteAppearancePreview' => (bool) $isPreview,
+            ]);
         });
     }
 }

@@ -80,6 +80,7 @@ class AdminKoniSecurityTest extends TestCase
             'admin.settings',
             'admin.master-data.index',
             'admin.dashboard-appearance.edit',
+            'admin.website-appearance.edit',
             'admin.absensi.index',
         ];
 

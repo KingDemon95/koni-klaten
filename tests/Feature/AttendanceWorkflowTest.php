@@ -9,6 +9,7 @@ use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Role;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -35,15 +36,20 @@ class AttendanceWorkflowTest extends TestCase
         return $user;
     }
 
-    private function createSession(User $admin, ?int $caborId = null, string $targetRole = 'all'): AttendanceSession
-    {
+    private function createSession(
+        User $admin,
+        ?int $caborId = null,
+        string $targetRole = 'all',
+        ?array $targetRoles = null,
+    ): AttendanceSession {
         return AttendanceSession::query()->create([
             'created_by' => $admin->id,
             'cabang_olahraga_id' => $caborId,
             'title' => 'Latihan Bersama KONI',
             'description' => 'Sesi uji absensi',
             'target_role' => $targetRole,
-            'token' => Str::random(40),
+            'target_roles' => $targetRoles,
+            'token' => Str::random(48),
             'starts_at' => now()->subMinutes(5),
             'ends_at' => now()->addHour(),
             'status' => 'open',
@@ -66,7 +72,7 @@ class AttendanceWorkflowTest extends TestCase
             'title' => 'Latihan Pagi',
             'description' => 'Latihan rutin',
             'cabang_olahraga_id' => $cabor->id,
-            'target_role' => 'all',
+            'target_roles' => ['admin_koni', 'staff_koni', 'ketua_koni', 'sekretaris_koni', 'admin_cabor', 'atlet', 'pelatih'],
             'starts_at' => now()->subMinute()->format('Y-m-d H:i:s'),
             'ends_at' => now()->addHour()->format('Y-m-d H:i:s'),
         ]);
@@ -76,8 +82,8 @@ class AttendanceWorkflowTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.absensi.show', $session))
             ->assertOk()
-            ->assertSee('QR Code Kehadiran')
-            ->assertSee('absensi/scan/'.$session->token, false);
+            ->assertSee('QR Code Harian')
+            ->assertSee('absensi/scan/'.$session->dailyScanToken(), false);
     }
 
     public function test_athlete_can_check_in_once_with_a_camera_selfie(): void
@@ -135,6 +141,7 @@ class AttendanceWorkflowTest extends TestCase
     {
         $admin = $this->userWithRole('admin_koni');
         $athlete = $this->userWithRole('atlet');
+        $secretary = $this->userWithRole('sekretaris_koni');
         $session = $this->createSession($admin);
         $path = 'absensi/'.$session->id.'/private-selfie.jpg';
         Storage::disk('local')->put($path, 'private-image-content');
@@ -149,6 +156,114 @@ class AttendanceWorkflowTest extends TestCase
         ]);
 
         $this->actingAs($athlete)->get(route('admin.absensi.selfie', $record))->assertForbidden();
+        $this->actingAs($secretary)->get(route('sekretaris.absensi.selfie', $record))->assertForbidden();
         $this->actingAs($admin)->get(route('admin.absensi.selfie', $record))->assertOk();
     }
+
+    public function test_staff_can_check_in_and_check_out_with_two_required_selfies(): void
+    {
+        $admin = $this->userWithRole('admin_koni');
+        $staff = $this->userWithRole('staff_koni');
+        $session = $this->createSession($admin, null, 'staff_koni', ['staff_koni']);
+        $token = $session->dailyScanToken();
+
+        $this->actingAs($staff)->get(route('attendance.check-in.show', $token))
+            ->assertOk()
+            ->assertSee('Ambil selfie check-in');
+
+        $this->actingAs($staff)->post(route('attendance.check-in.store', $token), [
+            'attendance_action' => 'check_in',
+            'selfie_data' => $this->selfieDataUrl(),
+        ])->assertRedirect(route('attendance.check-in.show', $token));
+
+        $record = AttendanceRecord::query()->firstOrFail();
+        $this->assertSame('staff_koni', $record->role_snapshot);
+        $this->assertNull($record->checked_out_at);
+        Storage::disk('local')->assertExists($record->selfie_path);
+
+        $this->actingAs($staff)->get(route('attendance.check-in.show', $token))
+            ->assertOk()
+            ->assertSee('Ambil selfie check-out');
+
+        $this->actingAs($staff)->post(route('attendance.check-in.store', $token), [
+            'attendance_action' => 'check_out',
+            'selfie_data' => $this->selfieDataUrl(),
+        ])->assertRedirect(route('attendance.check-in.show', $token));
+
+        $record->refresh();
+        $this->assertNotNull($record->checked_out_at);
+        $this->assertNotNull($record->check_out_selfie_path);
+        Storage::disk('local')->assertExists($record->check_out_selfie_path);
+
+        $this->actingAs($staff)->get(route('attendance.check-in.show', $token))
+            ->assertOk()
+            ->assertSee('Absensi selesai');
+    }
+
+    public function test_each_internal_role_can_use_a_session_that_targets_its_role(): void
+    {
+        $admin = $this->userWithRole('admin_koni');
+        $roles = ['admin_koni', 'staff_koni', 'ketua_koni', 'sekretaris_koni', 'admin_cabor', 'atlet', 'pelatih'];
+
+        foreach ($roles as $role) {
+            $participant = $this->userWithRole($role);
+            $session = $this->createSession($admin, null, $role, [$role]);
+
+            $this->actingAs($participant)
+                ->get(route('attendance.check-in.show', $session->dailyScanToken()))
+                ->assertOk();
+        }
+    }
+
+    public function test_public_role_cannot_open_an_attendance_qr(): void
+    {
+        Role::firstOrCreate(['name' => 'public', 'guard_name' => 'web']);
+
+        $admin = $this->userWithRole('admin_koni');
+        $publicUser = $this->userWithRole('public');
+        $session = $this->createSession($admin, null, 'all', ['admin_koni', 'staff_koni', 'ketua_koni', 'sekretaris_koni', 'admin_cabor', 'atlet', 'pelatih']);
+
+        $this->actingAs($publicUser)
+            ->get(route('attendance.check-in.show', $session->dailyScanToken()))
+            ->assertForbidden();
+    }
+
+    public function test_daily_qr_token_changes_when_local_date_changes(): void
+    {
+        $admin = $this->userWithRole('admin_koni');
+        $session = $this->createSession($admin, null, 'all', ['admin_koni', 'staff_koni']);
+
+        $todayToken = $session->dailyScanToken();
+        \Illuminate\Support\Carbon::setTestNow(now()->addDay());
+
+        try {
+            $tomorrowToken = $session->dailyScanToken();
+            $this->assertNotSame($todayToken, $tomorrowToken);
+            $this->assertNull(AttendanceSession::decodeDailyScanToken($todayToken));
+        } finally {
+            \Illuminate\Support\Carbon::setTestNow();
+        }
+    }
+
+    public function test_staff_can_create_and_view_an_attendance_session(): void
+    {
+        $staff = $this->userWithRole('staff_koni');
+
+        $response = $this->actingAs($staff)->post(route('staff.absensi.store'), [
+            'title' => 'Rapat Staff',
+            'description' => 'Kegiatan khusus staff',
+            'target_roles' => ['staff_koni'],
+            'starts_at' => now()->subMinute()->format('Y-m-d H:i:s'),
+            'ends_at' => now()->addHour()->format('Y-m-d H:i:s'),
+        ]);
+
+        $session = AttendanceSession::query()->firstOrFail();
+        $response->assertRedirect(route('staff.absensi.show', $session));
+
+        $this->actingAs($staff)->get(route('staff.absensi.show', $session))
+            ->assertOk()
+            ->assertSee('QR Code Harian')
+            ->assertSee('Staff KONI');
+    }
+
 }

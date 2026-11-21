@@ -15,7 +15,9 @@ class AttendanceRecord extends Model
         'participant_email',
         'role_snapshot',
         'selfie_path',
+        'check_out_selfie_path',
         'checked_in_at',
+        'checked_out_at',
         'ip_address',
         'user_agent',
     ];
@@ -24,6 +26,7 @@ class AttendanceRecord extends Model
     {
         return [
             'checked_in_at' => 'datetime',
+            'checked_out_at' => 'datetime',
         ];
     }
 

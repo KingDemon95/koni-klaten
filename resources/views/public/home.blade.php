@@ -3,8 +3,7 @@
 @section('title', 'Beranda')
 
 @section('content')
-<section class="relative isolate overflow-hidden bg-[#17191F]">
-    <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_78%_30%,rgba(215,25,32,0.42),transparent_34%),linear-gradient(115deg,#17191F_0%,#24252B_55%,#4A171B_100%)]"></div>
+<section class="public-page-hero relative isolate overflow-hidden bg-[#17191F]">
     <div class="absolute -right-24 -top-28 -z-10 h-96 w-96 rounded-full border-[38px] border-white/5"></div>
     <div class="absolute -bottom-36 right-[18%] -z-10 h-80 w-80 rounded-full border-[26px] border-[#D71920]/20"></div>
 

@@ -3,7 +3,7 @@
 @section('title', $cabangOlahraga->nama)
 
 @section('content')
-<section class="bg-[#17191F] text-white">
+<section class="public-page-hero bg-[#17191F] text-white">
     <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <a href="{{ route('public.cabor.index') }}" class="text-xs font-bold text-red-200 hover:text-white">← Semua Cabang Olahraga</a>
         <div class="mt-6 flex flex-col gap-6 sm:flex-row sm:items-center">

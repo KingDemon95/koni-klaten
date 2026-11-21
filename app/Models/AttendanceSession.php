@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,7 @@ class AttendanceSession extends Model
         'title',
         'description',
         'target_role',
+        'target_roles',
         'token',
         'starts_at',
         'ends_at',
@@ -24,6 +26,7 @@ class AttendanceSession extends Model
     protected function casts(): array
     {
         return [
+            'target_roles' => 'array',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
         ];
@@ -53,5 +56,52 @@ class AttendanceSession extends Model
     {
         return now()->greaterThanOrEqualTo($this->starts_at)
             && now()->lessThanOrEqualTo($this->ends_at);
+    }
+
+    /**
+     * Return a signed scan token that changes at the start of each local day.
+     * The static database token remains private and is never embedded in new QR codes.
+     */
+    public function dailyScanToken(?CarbonInterface $date = null): string
+    {
+        $id = base_convert((string) $this->getKey(), 10, 36);
+        $dateValue = ($date ?? now())->format('Ymd');
+        $payload = $id.'|'.$dateValue;
+        $signature = substr(hash_hmac('sha256', $payload, (string) config('app.key')), 0, 32);
+
+        return $id.'.'.$dateValue.'.'.$signature;
+    }
+
+    /**
+     * Decode a compact, signed daily QR token. The 128-bit signature keeps
+     * the complete localhost URL within the built-in QR encoder capacity.
+     *
+     * @return array{id:int,date:string}|null
+     */
+    public static function decodeDailyScanToken(string $token): ?array
+    {
+        if (! preg_match('/\\A([0-9a-z]+)\\.(\\d{8})\\.([a-f0-9]{32})\\z/D', $token, $matches)) {
+            return null;
+        }
+
+        [, $encodedId, $dateValue, $signature] = $matches;
+        $id = base_convert($encodedId, 36, 10);
+        if (! ctype_digit($id)) {
+            return null;
+        }
+
+        $parsedDate = \DateTimeImmutable::createFromFormat('!Ymd', $dateValue);
+        if (! $parsedDate || $parsedDate->format('Ymd') !== $dateValue) {
+            return null;
+        }
+
+        $payload = $encodedId.'|'.$dateValue;
+        $expected = substr(hash_hmac('sha256', $payload, (string) config('app.key')), 0, 32);
+
+        if (! hash_equals($expected, $signature) || $dateValue !== now()->format('Ymd')) {
+            return null;
+        }
+
+        return ['id' => (int) $id, 'date' => $parsedDate->format('Y-m-d')];
     }
 }

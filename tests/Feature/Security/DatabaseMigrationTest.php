@@ -33,6 +33,9 @@ class DatabaseMigrationTest extends TestCase
             'inventory_movements',
             'inventory_loans',
             'audit_logs',
+            'attendance_sessions',
+            'attendance_records',
+            'website_appearance_settings',
         ];
 
         foreach ($tables as $table) {
@@ -65,5 +68,9 @@ class DatabaseMigrationTest extends TestCase
             Schema::hasColumn('users', 'password_changed_at'),
             'Kolom password_changed_at tidak ditemukan pada tabel users.'
         );
+
+        $this->assertTrue(Schema::hasColumn('attendance_sessions', 'target_roles'));
+        $this->assertTrue(Schema::hasColumn('attendance_records', 'checked_out_at'));
+        $this->assertTrue(Schema::hasColumn('attendance_records', 'check_out_selfie_path'));
     }
 }

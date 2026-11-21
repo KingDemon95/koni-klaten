@@ -61,6 +61,8 @@
                 Dashboard
             </a>
 
+            <a href="{{ route('staff.absensi.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('staff.absensi.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Absensi QR & Selfie</a>
+
             <a href="{{ route('staff.laporan.index') }}"
                class="block rounded-xl px-4 py-3 text-sm font-semibold
                {{ request()->routeIs('staff.laporan.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">
@@ -157,6 +159,7 @@
                             Dashboard
                         </a>
 
+                        <a href="{{ route('staff.absensi.index') }}">Absensi QR & Selfie</a>
                         <a href="{{ route('staff.laporan.index') }}">
                             Laporan & Rekapitulasi
                         </a>

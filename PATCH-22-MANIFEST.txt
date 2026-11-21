@@ -1,0 +1,45 @@
+PATCH 22 - File yang ditambahkan atau diperbarui
+
+File baru:
+  + PATCH-22-INSTRUKSI.md
+  + app/Http/Controllers/Admin/WebsiteAppearanceController.php
+  + app/Models/WebsiteAppearanceSetting.php
+  + database/migrations/2026_11_21_000004_extend_attendance_for_internal_roles_and_checkout.php
+  + database/migrations/2026_11_21_000005_create_website_appearance_settings_table.php
+  + resources/views/admin/website-appearance/edit.blade.php
+  + resources/views/attendance/create.blade.php
+  + resources/views/attendance/index.blade.php
+  + resources/views/attendance/show.blade.php
+  + tests/Feature/WebsiteAppearanceTest.php
+
+File diperbarui:
+  * app/Http/Controllers/Admin/AttendanceSessionController.php
+  * app/Http/Controllers/Attendance/AttendanceCheckInController.php
+  * app/Models/AttendanceRecord.php
+  * app/Models/AttendanceSession.php
+  * app/Providers/AppServiceProvider.php
+  * resources/views/absensi/check-in.blade.php
+  * resources/views/admin/partials/nav-links.blade.php
+  * resources/views/layouts/atlet.blade.php
+  * resources/views/layouts/cabor.blade.php
+  * resources/views/layouts/pelatih.blade.php
+  * resources/views/layouts/public.blade.php
+  * resources/views/layouts/staff.blade.php
+  * resources/views/public/agenda/index.blade.php
+  * resources/views/public/agenda/show.blade.php
+  * resources/views/public/berita/index.blade.php
+  * resources/views/public/berita/show.blade.php
+  * resources/views/public/cabor/index.blade.php
+  * resources/views/public/cabor/show.blade.php
+  * resources/views/public/dokumentasi/index.blade.php
+  * resources/views/public/dokumentasi/show.blade.php
+  * resources/views/public/home.blade.php
+  * resources/views/public/statistik/index.blade.php
+  * resources/views/public/struktur/index.blade.php
+  * resources/views/sekretaris/partials/nav-links.blade.php
+  * routes/web.php
+  * tests/Feature/AttendanceWorkflowTest.php
+  * tests/Feature/Security/AdminKoniSecurityTest.php
+  * tests/Feature/Security/DatabaseMigrationTest.php
+
+Tidak ada file .env atau database pengguna yang disertakan dalam patch.

@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\CabangOlahraga;
+use App\Models\User;
 use App\Support\QrCode\QrCodeSvg;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -17,112 +19,449 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttendanceSessionController extends Controller
 {
-    public function index(): View
+    private const PARTICIPANT_ROLES = ['atlet', 'pelatih', 'atlet_pelatih'];
+
+    private const SELECTABLE_ROLES = [
+        'admin_koni',
+        'staff_koni',
+        'ketua_koni',
+        'sekretaris_koni',
+        'admin_cabor',
+        'atlet',
+        'pelatih',
+    ];
+
+    public function index(Request $request): View
     {
-        $sessions = AttendanceSession::query()
+        $user = $request->user();
+        $routePrefix = $this->routePrefix($user);
+        $layout = $this->layoutFor($user);
+        $canManage = $this->canManage($user);
+        $canViewRecords = $this->canViewOrganizationRecords($user);
+        $filters = $request->validate([
+            'role' => ['nullable', Rule::in(self::SELECTABLE_ROLES)],
+            'cabor_id' => ['nullable', 'integer', Rule::exists('cabang_olahraga', 'id')],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+        ]);
+
+        $sessionQuery = AttendanceSession::query()
             ->with('cabangOlahraga')
             ->withCount('records')
-            ->latest('starts_at')
-            ->paginate(12);
+            ->latest('starts_at');
 
-        return view('admin.absensi.index', compact('sessions'));
+        if ($user->hasRole('admin_cabor')) {
+            $sessionQuery->where('cabang_olahraga_id', $user->cabang_olahraga_id);
+        } elseif ($this->isParticipant($user)) {
+            $sessionQuery->where('status', 'open')
+                ->whereDate('starts_at', '<=', now()->toDateString())
+                ->whereDate('ends_at', '>=', now()->toDateString());
+        }
+
+        $sessions = $this->isParticipant($user)
+            ? $sessionQuery->limit(100)->get()
+                ->filter(fn (AttendanceSession $session): bool => $this->participantCanJoin($user, $session))
+                ->values()
+            : $sessionQuery->paginate(12)->withQueryString();
+
+        $recordsQuery = AttendanceRecord::query()
+            ->with(['session', 'cabangOlahraga'])
+            ->latest('checked_in_at');
+
+        if ($this->isParticipant($user)) {
+            $recordsQuery->where('user_id', $user->id);
+        } elseif ($user->hasRole('admin_cabor')) {
+            $recordsQuery->where('cabang_olahraga_id', $user->cabang_olahraga_id);
+        }
+
+        if ($canViewRecords) {
+            if (! empty($filters['role'])) {
+                $recordsQuery->where('role_snapshot', $filters['role']);
+            }
+
+            if (! empty($filters['cabor_id']) && ! $user->hasRole('admin_cabor')) {
+                $recordsQuery->where('cabang_olahraga_id', $filters['cabor_id']);
+            }
+
+            if (! empty($filters['date_from'])) {
+                $recordsQuery->whereDate('checked_in_at', '>=', $filters['date_from']);
+            }
+
+            if (! empty($filters['date_to'])) {
+                $recordsQuery->whereDate('checked_in_at', '<=', $filters['date_to']);
+            }
+        }
+
+        $summaryByRole = $canViewRecords
+            ? (clone $recordsQuery)
+                ->reorder()
+                ->selectRaw('role_snapshot, COUNT(*) as total, SUM(CASE WHEN checked_out_at IS NOT NULL THEN 1 ELSE 0 END) as completed')
+                ->groupBy('role_snapshot')
+                ->orderBy('role_snapshot')
+                ->get()
+            : collect();
+
+        $summaryByCabor = $canViewRecords
+            ? (clone $recordsQuery)
+                ->reorder()
+                ->leftJoin('cabang_olahraga', 'attendance_records.cabang_olahraga_id', '=', 'cabang_olahraga.id')
+                ->selectRaw("COALESCE(cabang_olahraga.nama, 'Non-Cabor') as cabor, COUNT(attendance_records.id) as total")
+                ->groupBy('cabang_olahraga.id', 'cabang_olahraga.nama')
+                ->orderBy('cabor')
+                ->get()
+            : collect();
+
+        $records = $recordsQuery->paginate(20)->withQueryString();
+        $cabors = $canViewRecords
+            ? CabangOlahraga::query()->where('status', 'aktif')->orderBy('nama')->get(['id', 'nama'])
+            : collect();
+
+        return view('attendance.index', compact(
+            'sessions',
+            'records',
+            'summaryByRole',
+            'summaryByCabor',
+            'cabors',
+            'filters',
+            'routePrefix',
+            'layout',
+            'canManage',
+            'canViewRecords',
+        ));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('admin.absensi.create', [
-            'cabors' => CabangOlahraga::query()->where('status', 'aktif')->orderBy('nama')->get(),
+        $user = $request->user();
+        abort_unless($this->canManage($user), 403);
+
+        $cabors = $user->hasRole('admin_cabor')
+            ? CabangOlahraga::query()->whereKey($user->cabang_olahraga_id)->where('status', 'aktif')->orderBy('nama')->get()
+            : CabangOlahraga::query()->where('status', 'aktif')->orderBy('nama')->get();
+
+        abort_if($user->hasRole('admin_cabor') && $cabors->isEmpty(), 403, 'Akun Admin Cabor belum terhubung dengan cabang olahraga aktif.');
+
+        return view('attendance.create', [
+            'cabors' => $cabors,
+            'routePrefix' => $this->routePrefix($user),
+            'layout' => $this->layoutFor($user),
+            'isCaborAdmin' => $user->hasRole('admin_cabor'),
+            'roles' => self::SELECTABLE_ROLES,
+            'roleLabels' => $this->roleLabels(),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        abort_unless($this->canManage($user), 403);
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:160'],
             'description' => ['nullable', 'string', 'max:3000'],
             'cabang_olahraga_id' => ['nullable', 'integer', Rule::exists('cabang_olahraga', 'id')->where('status', 'aktif')],
-            'target_role' => ['required', 'in:all,atlet,pelatih'],
+            'target_roles' => ['nullable', 'array', 'min:1'],
+            'target_roles.*' => ['required', 'string', 'distinct', Rule::in(self::SELECTABLE_ROLES)],
+            'target_role' => ['nullable', Rule::in(['all', 'atlet', 'pelatih'])],
             'starts_at' => ['required', 'date'],
             'ends_at' => ['required', 'date', 'after:starts_at'],
         ]);
 
+        if (empty($validated['target_roles']) && empty($validated['target_role'])) {
+            return back()->withInput()->withErrors([
+                'target_roles' => 'Pilih minimal satu role peserta yang boleh melakukan absensi.',
+            ]);
+        }
+
+        if ($user->hasRole('admin_cabor')) {
+            abort_unless($user->cabang_olahraga_id, 403);
+            $validated['cabang_olahraga_id'] = $user->cabang_olahraga_id;
+        }
+
+        $targetRoles = array_values(array_unique($validated['target_roles'] ?? []));
+        if ($targetRoles === []) {
+            $targetRoles = match ($validated['target_role'] ?? 'all') {
+                'atlet' => ['atlet'],
+                'pelatih' => ['pelatih'],
+                default => self::SELECTABLE_ROLES,
+            };
+        }
+
+        $legacyTargetRole = count($targetRoles) === 1
+            ? $targetRoles[0]
+            : (count($targetRoles) === count(self::SELECTABLE_ROLES) ? 'all' : 'custom');
+
         $session = AttendanceSession::query()->create([
-            ...$validated,
-            'created_by' => $request->user()->id,
-            'token' => Str::random(40),
+            'created_by' => $user->id,
+            'cabang_olahraga_id' => $validated['cabang_olahraga_id'] ?? null,
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'target_role' => $legacyTargetRole,
+            'target_roles' => $targetRoles,
+            'token' => Str::random(48),
+            'starts_at' => $validated['starts_at'],
+            'ends_at' => $validated['ends_at'],
             'status' => 'open',
         ]);
 
-        return redirect()->route('admin.absensi.show', $session)
-            ->with('success', 'Sesi absensi berhasil dibuat. Bagikan QR Code kepada peserta.');
+        return redirect()->route($this->routePrefix($user).'.absensi.show', $session)
+            ->with('success', 'Sesi absensi berhasil dibuat. QR harian siap dibagikan.');
     }
 
-    public function show(AttendanceSession $attendanceSession): View
+    public function show(Request $request, AttendanceSession $attendanceSession): View
     {
+        $user = $request->user();
+        $this->authorizeSessionView($user, $attendanceSession);
+
         $attendanceSession->load(['cabangOlahraga', 'creator']);
-        $records = $attendanceSession->records()
+        $recordsQuery = $attendanceSession->records()
             ->with(['user', 'cabangOlahraga'])
-            ->latest('checked_in_at')
-            ->paginate(25);
-        $qrSvg = QrCodeSvg::render(route('attendance.check-in.show', $attendanceSession->token));
+            ->latest('checked_in_at');
 
-        return view('admin.absensi.show', compact('attendanceSession', 'records', 'qrSvg'));
+        if ($user->hasRole('admin_cabor')) {
+            $recordsQuery->where('cabang_olahraga_id', $user->cabang_olahraga_id);
+        }
+
+        $records = $recordsQuery->paginate(25)->withQueryString();
+        $scanUrl = route('attendance.check-in.show', $attendanceSession->dailyScanToken());
+        $qrSvg = QrCodeSvg::render($scanUrl);
+
+        return view('attendance.show', [
+            'attendanceSession' => $attendanceSession,
+            'records' => $records,
+            'qrSvg' => $qrSvg,
+            'scanUrl' => $scanUrl,
+            'routePrefix' => $this->routePrefix($user),
+            'layout' => $this->layoutFor($user),
+            'canManage' => $this->canManageSession($user, $attendanceSession),
+            'canViewSelfies' => $user->hasAnyRole(['admin_koni', 'staff_koni', 'admin_cabor']),
+        ]);
     }
 
-    public function close(AttendanceSession $attendanceSession): RedirectResponse
+    public function close(Request $request, AttendanceSession $attendanceSession): RedirectResponse
     {
+        $user = $request->user();
+        abort_unless($this->canManageSession($user, $attendanceSession), 403);
+
         $attendanceSession->update(['status' => 'closed']);
 
-        return redirect()->route('admin.absensi.show', $attendanceSession)
-            ->with('success', 'Sesi absensi telah ditutup. QR Code tidak dapat digunakan lagi.');
+        return redirect()->route($this->routePrefix($user).'.absensi.show', $attendanceSession)
+            ->with('success', 'Sesi absensi telah ditutup. QR tidak dapat digunakan lagi.');
     }
 
-    public function export(AttendanceSession $attendanceSession): StreamedResponse
+    public function export(Request $request, AttendanceSession $attendanceSession): StreamedResponse
     {
+        $user = $request->user();
+        $this->authorizeSessionView($user, $attendanceSession);
+
         $filename = 'rekap-absensi-'.Str::slug($attendanceSession->title).'-'.$attendanceSession->starts_at->format('Ymd').'.csv';
 
-        return response()->streamDownload(function () use ($attendanceSession): void {
+        return response()->streamDownload(function () use ($attendanceSession, $user): void {
             $output = fopen('php://output', 'w');
             fwrite($output, "\xEF\xBB\xBF");
-            fputcsv($output, ['Nama Peserta', 'Email', 'Peran', 'Cabang Olahraga', 'Waktu Hadir']);
+            fputcsv($output, [
+                'Nama Peserta',
+                'Email',
+                'Peran',
+                'Cabang Olahraga',
+                'Waktu Check-in',
+                'Waktu Check-out',
+                'Status',
+            ]);
 
-            $attendanceSession->records()
+            $query = $attendanceSession->records()
                 ->with('cabangOlahraga')
-                ->orderBy('checked_in_at')
-                ->chunk(200, function ($records) use ($output): void {
-                    foreach ($records as $record) {
-                        fputcsv($output, [
-                            $this->safeCsvValue($record->participant_name),
-                            $this->safeCsvValue($record->participant_email),
-                            $this->safeCsvValue(ucfirst($record->role_snapshot)),
-                            $this->safeCsvValue($record->cabangOlahraga?->nama ?? '-'),
-                            $record->checked_in_at?->format('d/m/Y H:i:s'),
-                        ]);
-                    }
-                });
+                ->orderBy('checked_in_at');
+
+            if ($user->hasRole('admin_cabor')) {
+                $query->where('cabang_olahraga_id', $user->cabang_olahraga_id);
+            }
+
+            $query->chunk(200, function ($records) use ($output): void {
+                foreach ($records as $record) {
+                    fputcsv($output, [
+                        $this->safeCsvValue($record->participant_name),
+                        $this->safeCsvValue($record->participant_email),
+                        $this->safeCsvValue($this->roleLabels()[$record->role_snapshot] ?? $record->role_snapshot),
+                        $this->safeCsvValue($record->cabangOlahraga?->nama ?? 'Non-Cabor'),
+                        $record->checked_in_at?->format('d/m/Y H:i:s'),
+                        $record->checked_out_at?->format('d/m/Y H:i:s'),
+                        $record->checked_out_at ? 'Check-in dan check-out' : 'Belum check-out',
+                    ]);
+                }
+            });
 
             fclose($output);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
-    public function selfie(AttendanceRecord $attendanceRecord)
+    public function selfie(Request $request, AttendanceRecord $attendanceRecord)
     {
-        abort_unless(Storage::disk('local')->exists($attendanceRecord->selfie_path), 404);
+        $user = $request->user();
+        $attendanceRecord->loadMissing('session');
+        $this->authorizeRecordView($user, $attendanceRecord);
+
+        $kind = $request->query('kind', 'check-in');
+        abort_unless(in_array($kind, ['check-in', 'check-out'], true), 404);
+
+        $path = $kind === 'check-out'
+            ? $attendanceRecord->check_out_selfie_path
+            : $attendanceRecord->selfie_path;
+
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
 
         return Storage::disk('local')->response(
-            $attendanceRecord->selfie_path,
+            $path,
             null,
             ['Cache-Control' => 'private, no-store'],
         );
     }
 
+    private function canManage(User $user): bool
+    {
+        return $user->hasAnyRole(['admin_koni', 'staff_koni', 'admin_cabor']);
+    }
+
+    private function canViewOrganizationRecords(User $user): bool
+    {
+        return $user->hasAnyRole([
+            'admin_koni',
+            'staff_koni',
+            'ketua_koni',
+            'sekretaris_koni',
+            'admin_cabor',
+        ]);
+    }
+
+    private function isParticipant(User $user): bool
+    {
+        return $user->hasAnyRole(self::PARTICIPANT_ROLES);
+    }
+
+    private function canManageSession(User $user, AttendanceSession $session): bool
+    {
+        if (! $this->canManage($user)) {
+            return false;
+        }
+
+        if ($user->hasRole('admin_cabor')) {
+            return $user->cabang_olahraga_id !== null
+                && (int) $session->cabang_olahraga_id === (int) $user->cabang_olahraga_id;
+        }
+
+        return true;
+    }
+
+    private function authorizeSessionView(User $user, AttendanceSession $session): void
+    {
+        abort_unless(
+            $user->hasAnyRole(['admin_koni', 'staff_koni', 'ketua_koni', 'sekretaris_koni'])
+                || ($user->hasRole('admin_cabor') && $this->canManageSession($user, $session)),
+            403,
+        );
+    }
+
+    private function authorizeRecordView(User $user, AttendanceRecord $record): void
+    {
+        if ($user->hasAnyRole(['admin_koni', 'staff_koni'])) {
+            return;
+        }
+
+        if ($user->hasRole('admin_cabor')) {
+            abort_unless(
+                $user->cabang_olahraga_id !== null
+                    && (int) $record->cabang_olahraga_id === (int) $user->cabang_olahraga_id,
+                403,
+            );
+
+            return;
+        }
+
+        abort_unless(false, 403, 'Foto selfie absensi hanya dapat dilihat oleh pengelola yang berwenang.');
+    }
+
+    private function participantCanJoin(User $user, AttendanceSession $session): bool
+    {
+        if ($session->status !== 'open' || ! $session->isWithinSchedule()) {
+            return false;
+        }
+
+        $userRoles = $user->getRoleNames()->all();
+        if (is_array($session->target_roles) && $session->target_roles !== []) {
+            if (array_intersect($userRoles, $session->target_roles) === []
+                && ! (in_array('atlet_pelatih', $userRoles, true)
+                    && array_intersect(['atlet', 'pelatih'], $session->target_roles) !== [])) {
+                return false;
+            }
+        } else {
+            $legacyAllowed = match ($session->target_role) {
+                'atlet' => ['atlet', 'atlet_pelatih'],
+                'pelatih' => ['pelatih', 'atlet_pelatih'],
+                default => ['atlet', 'pelatih', 'atlet_pelatih'],
+            };
+
+            if (array_intersect($userRoles, $legacyAllowed) === []) {
+                return false;
+            }
+        }
+
+        if ($session->cabang_olahraga_id) {
+            $user->loadMissing(['atlet', 'pelatih']);
+            $caborIds = collect([
+                $user->cabang_olahraga_id,
+                $user->atlet?->cabang_olahraga_id,
+                $user->pelatih?->cabang_olahraga_id,
+            ])->filter()->map(fn ($id): int => (int) $id);
+
+            return $caborIds->contains((int) $session->cabang_olahraga_id);
+        }
+
+        return true;
+    }
+
+    private function routePrefix(User $user): string
+    {
+        return match (true) {
+            $user->hasAnyRole(['admin_koni', 'ketua_koni']) => 'admin',
+            $user->hasRole('staff_koni') => 'staff',
+            $user->hasRole('sekretaris_koni') => 'sekretaris',
+            $user->hasRole('admin_cabor') => 'cabor',
+            $user->hasRole('pelatih') => 'pelatih',
+            default => 'atlet',
+        };
+    }
+
+    private function layoutFor(User $user): string
+    {
+        return match (true) {
+            $user->hasAnyRole(['admin_koni', 'ketua_koni']) => 'layouts.admin',
+            $user->hasRole('staff_koni') => 'layouts.staff',
+            $user->hasRole('sekretaris_koni') => 'layouts.sekretaris',
+            $user->hasRole('admin_cabor') => 'layouts.cabor',
+            $user->hasRole('pelatih') => 'layouts.pelatih',
+            default => 'layouts.atlet',
+        };
+    }
+
+    private function roleLabels(): array
+    {
+        return [
+            'admin_koni' => 'Admin KONI',
+            'staff_koni' => 'Staff KONI',
+            'ketua_koni' => 'Ketua KONI',
+            'sekretaris_koni' => 'Sekretaris KONI',
+            'admin_cabor' => 'Admin Cabor',
+            'atlet' => 'Atlet',
+            'pelatih' => 'Pelatih',
+        ];
+    }
+
     private function safeCsvValue(?string $value): string
     {
         $value = trim((string) $value);
-        if ($value !== '' && preg_match('/^[=+@\-\t\r]/', $value)) {
-            return "'".$value;
-        }
 
-        return $value;
+        return $value !== '' && preg_match('/^[=+@\-\t\r]/', $value)
+            ? "'".$value
+            : $value;
     }
 }

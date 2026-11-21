@@ -3,7 +3,7 @@
 @section('title', 'Cabang Olahraga')
 
 @section('content')
-<section class="bg-[#17191F] text-white">
+<section class="public-page-hero bg-[#17191F] text-white">
     <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
         <p class="text-xs font-black tracking-[0.2em] text-red-300">DIREKTORI OLAHRAGA</p>
         <h1 class="mt-3 text-3xl font-black sm:text-4xl">Cabang Olahraga</h1>

@@ -15,7 +15,7 @@
     ];
 @endphp
 
-<section class="bg-[#17191F] text-white">
+<section class="public-page-hero bg-[#17191F] text-white">
     <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <p class="text-xs font-black tracking-[0.22em] text-red-300">TRANSPARANSI CAPAIAN OLAHRAGA</p>
         <h1 class="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-5xl">Statistik Prestasi KONI Kabupaten Klaten</h1>

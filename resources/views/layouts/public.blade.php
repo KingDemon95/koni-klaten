@@ -6,10 +6,36 @@
     <meta name="description" content="Portal informasi KONI Kabupaten Klaten: cabang olahraga, atlet, pelatih, dan kepengurusan.">
     <title>@yield('title', 'Portal Informasi') - {{ $profilKoni?->nama_singkat ?? 'KONI Klaten' }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        .public-site { font-family: var(--website-font-family, Figtree, ui-sans-serif, system-ui, sans-serif); }
+        .public-site .public-page-hero {
+            background-image:
+                linear-gradient(115deg, rgba(23, 25, 31, var(--website-page-overlay, .62)), rgba(23, 25, 31, calc(var(--website-page-overlay, .62) * .72))),
+                var(--website-page-backdrop, none);
+            background-position: center, var(--website-page-position, center);
+            background-size: cover;
+            background-repeat: no-repeat;
+        }
+        .public-theme .bg-\[\#D71920\] { background-color: var(--website-primary, #D71920) !important; }
+        .public-theme .text-\[\#D71920\] { color: var(--website-primary, #D71920) !important; }
+        .public-theme .bg-\[\#E60012\] { background-color: var(--website-primary, #D71920) !important; }
+        .public-theme .text-\[\#E60012\] { color: var(--website-primary, #D71920) !important; }
+        .public-theme .bg-\[\#17191F\] { background-color: var(--website-secondary, #17191F) !important; }
+        .public-theme .bg-red-600, .public-theme .bg-red-700 { background-color: var(--website-primary, #D71920) !important; }
+        .public-theme .text-red-600, .public-theme .text-red-700 { color: var(--website-primary, #D71920) !important; }
+        .public-theme .hover\:bg-red-700:hover { background-color: var(--website-primary, #D71920) !important; filter: brightness(.9); }
+
+    </style>
 </head>
-<body class="min-h-screen bg-[#F7F8FA] text-slate-900 antialiased">
+<body class="public-theme min-h-screen bg-[#F7F8FA] text-slate-900 antialiased" style="font-family: {{ $websiteFontFamily ?? 'Figtree, ui-sans-serif, system-ui, sans-serif' }}; --website-primary: {{ $websiteAppearance['primary_color'] ?? '#D71920' }}; --website-secondary: {{ $websiteAppearance['secondary_color'] ?? '#17191F' }}">
+    @if($websiteAppearancePreview ?? false)
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-amber-100 px-4 py-3 text-xs font-bold text-amber-950">
+            <span>MODE PREVIEW DRAFT. Tampilan ini belum dipublikasikan ke pengunjung.</span>
+            <a href="{{ route('admin.website-appearance.edit') }}" class="underline">Kembali ke pengaturan tampilan</a>
+        </div>
+    @endif
     <a href="#konten-utama" class="koni-skip-link">Langsung ke konten utama</a>
-    <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur">
+    <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur" style="background-color: {{ $websiteAppearance['header_background'] ?? '#FFFFFF' }}">
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
             <a href="{{ route('public.home') }}" class="flex shrink-0 items-center gap-3" aria-label="Beranda KONI Klaten">
                 @if($profilKoni?->logo_path)
@@ -59,11 +85,23 @@
         </div>
     </header>
 
-    <main id="konten-utama" tabindex="-1">
+    <main
+        id="konten-utama"
+        tabindex="-1"
+        class="public-site"
+        style="
+            --website-primary: {{ $websiteAppearance['primary_color'] ?? '#D71920' }};
+            --website-secondary: {{ $websiteAppearance['secondary_color'] ?? '#17191F' }};
+            --website-font-family: {{ $websiteFontFamily ?? 'Figtree, ui-sans-serif, system-ui, sans-serif' }};
+            --website-page-backdrop: @if($websitePageBackdropUrl ?? null) url('{{ $websitePageBackdropUrl }}') @else none @endif;
+            --website-page-overlay: {{ ((int)($websitePageAppearance['overlay_opacity'] ?? 62)) / 100 }};
+            --website-page-position: {{ $websitePageAppearance['background_position'] ?? 'center' }};
+        "
+    >
         @yield('content')
     </main>
 
-    <footer class="mt-20 bg-[#17191F] text-white">
+    <footer class="mt-20 bg-[#17191F] text-white" style="background-color: {{ $websiteAppearance['footer_background'] ?? '#17191F' }}">
         <div class="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-2 lg:px-8">
             <div>
                 <div class="flex items-center gap-3">

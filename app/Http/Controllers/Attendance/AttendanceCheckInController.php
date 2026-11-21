@@ -12,31 +12,51 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use LogicException;
 
 class AttendanceCheckInController extends Controller
 {
+    private const INTERNAL_ROLES = [
+        'admin_koni',
+        'staff_koni',
+        'ketua_koni',
+        'sekretaris_koni',
+        'admin_cabor',
+        'atlet',
+        'pelatih',
+        'atlet_pelatih',
+    ];
+
     public function show(Request $request, string $token): View
     {
-        $session = AttendanceSession::query()
-            ->with('cabangOlahraga')
-            ->where('token', $token)
-            ->firstOrFail();
-
+        $session = $this->resolveSession($token);
         $this->authorizeParticipant($request, $session);
+
         $existingRecord = $session->records()
             ->where('user_id', $request->user()->id)
             ->first();
 
+        $attendanceAction = match (true) {
+            ! $existingRecord => 'check_in',
+            ! $existingRecord->checked_out_at => 'check_out',
+            default => 'completed',
+        };
+
+        $canRecord = $session->status === 'open'
+            && $session->isWithinSchedule()
+            && $attendanceAction !== 'completed';
+
         return view('absensi.check-in', [
-            'session' => $session,
+            'session' => $session->load('cabangOlahraga'),
             'existingRecord' => $existingRecord,
-            'canCheckIn' => $session->status === 'open' && $session->isWithinSchedule() && !$existingRecord,
+            'attendanceAction' => $attendanceAction,
+            'canRecord' => $canRecord,
         ]);
     }
 
     public function store(Request $request, string $token): RedirectResponse
     {
-        $session = AttendanceSession::query()->where('token', $token)->firstOrFail();
+        $session = $this->resolveSession($token);
         $user = $request->user();
         $this->authorizeParticipant($request, $session);
 
@@ -44,23 +64,39 @@ class AttendanceCheckInController extends Controller
             return back()->with('error', 'Sesi absensi sudah ditutup.');
         }
 
-        if (now()->lt($session->starts_at)) {
-            return back()->with('error', 'Sesi absensi belum dimulai.');
+        if (! $session->isWithinSchedule()) {
+            return back()->with('error', 'Absensi hanya dapat dilakukan selama jadwal kegiatan.');
         }
 
-        if (now()->gt($session->ends_at)) {
-            return back()->with('error', 'Waktu absensi sudah berakhir.');
-        }
-
-        $existingRecord = $session->records()->where('user_id', $user->id)->exists();
-        if ($existingRecord) {
-            return redirect()->route('attendance.check-in.show', $token)
-                ->with('error', 'Akun ini sudah melakukan absensi pada sesi tersebut.');
+        if (! $request->has('attendance_action')) {
+            $request->merge(['attendance_action' => 'check_in']);
         }
 
         $validated = $request->validate([
+            'attendance_action' => ['required', 'in:check_in,check_out'],
             'selfie_data' => ['required', 'string', 'max:2800000'],
         ]);
+
+        $existingRecord = $session->records()
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($validated['attendance_action'] === 'check_in' && $existingRecord) {
+            return redirect()->route('attendance.check-in.show', $token)
+                ->with('error', 'Check-in untuk sesi ini sudah tercatat.');
+        }
+
+        if ($validated['attendance_action'] === 'check_out') {
+            if (! $existingRecord) {
+                return redirect()->route('attendance.check-in.show', $token)
+                    ->with('error', 'Lakukan check-in terlebih dahulu sebelum check-out.');
+            }
+
+            if ($existingRecord->checked_out_at) {
+                return redirect()->route('attendance.check-in.show', $token)
+                    ->with('error', 'Check-out untuk sesi ini sudah tercatat.');
+            }
+        }
 
         $imageBytes = $this->decodeSelfie($validated['selfie_data']);
         abort_if($imageBytes === null, 422, 'Selfie harus berasal dari kamera dan menggunakan format JPEG yang valid.');
@@ -77,42 +113,96 @@ class AttendanceCheckInController extends Controller
             'Resolusi selfie tidak memenuhi ketentuan.',
         );
 
-        $path = 'absensi/'.$session->id.'/'.$user->id.'_'.now()->format('YmdHis').'_'.Str::random(8).'.jpg';
-        if (!Storage::disk('local')->put($path, $imageBytes)) {
+        $action = $validated['attendance_action'];
+        $path = 'absensi/'.$session->id.'/'.$user->id.'_'.$action.'_'.now()->format('YmdHis').'_'.Str::random(8).'.jpg';
+
+        if (! Storage::disk('local')->put($path, $imageBytes)) {
             return back()->withInput()->with('error', 'Selfie gagal disimpan. Silakan coba kembali.');
         }
 
-        $caborId = $this->participantCaborId($user, $session);
-
         try {
-            DB::transaction(function () use ($session, $user, $caborId, $path, $request): void {
-                AttendanceRecord::query()->create([
-                    'attendance_session_id' => $session->id,
-                    'user_id' => $user->id,
-                    'cabang_olahraga_id' => $caborId,
-                    'participant_name' => $user->name,
-                    'participant_email' => $user->email,
-                    'role_snapshot' => $this->participantRole($user, $session->target_role),
-                    'selfie_path' => $path,
-                    'checked_in_at' => now(),
-                    'ip_address' => $request->ip(),
-                    'user_agent' => substr((string) $request->userAgent(), 0, 1000),
+            DB::transaction(function () use ($session, $user, $request, $path, $action): void {
+                $record = $session->records()
+                    ->where('user_id', $user->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($action === 'check_in') {
+                    if ($record) {
+                        throw new LogicException('Check-in untuk sesi ini sudah tercatat.');
+                    }
+
+                    AttendanceRecord::query()->create([
+                        'attendance_session_id' => $session->id,
+                        'user_id' => $user->id,
+                        'cabang_olahraga_id' => $this->participantCaborId($user, $session),
+                        'participant_name' => $user->name,
+                        'participant_email' => $user->email,
+                        'role_snapshot' => $this->participantRole($user, $session),
+                        'selfie_path' => $path,
+                        'checked_in_at' => now(),
+                        'ip_address' => $request->ip(),
+                        'user_agent' => substr((string) $request->userAgent(), 0, 1000),
+                    ]);
+
+                    return;
+                }
+
+                if (! $record || $record->checked_out_at) {
+                    throw new LogicException('Check-out tidak tersedia atau sudah tercatat.');
+                }
+
+                $record->update([
+                    'check_out_selfie_path' => $path,
+                    'checked_out_at' => now(),
                 ]);
             });
         } catch (QueryException $exception) {
             Storage::disk('local')->delete($path);
+
             if ($session->records()->where('user_id', $user->id)->exists()) {
                 return redirect()->route('attendance.check-in.show', $token)
-                    ->with('error', 'Akun ini sudah melakukan absensi pada sesi tersebut.');
+                    ->with('error', 'Status absensi sudah berubah. Muat ulang halaman untuk melanjutkan.');
             }
+
             throw $exception;
+        } catch (LogicException $exception) {
+            Storage::disk('local')->delete($path);
+
+            return redirect()->route('attendance.check-in.show', $token)
+                ->with('error', $exception->getMessage());
         } catch (\Throwable $exception) {
             Storage::disk('local')->delete($path);
             throw $exception;
         }
 
-        return redirect()->route('attendance.check-in.show', $token)
-            ->with('success', 'Absensi berhasil dicatat. Terima kasih.');
+        $message = $action === 'check_in'
+            ? 'Check-in berhasil dicatat. Jangan lupa melakukan check-out setelah kegiatan selesai.'
+            : 'Check-out berhasil dicatat. Terima kasih sudah mengikuti kegiatan.';
+
+        return redirect()->route('attendance.check-in.show', $token)->with('success', $message);
+    }
+
+    private function resolveSession(string $token): AttendanceSession
+    {
+        // Legacy rows without target_roles can still accept their old link.
+        // New and migrated sessions use the signed token generated for today.
+        $legacySession = AttendanceSession::query()->where('token', $token)->first();
+        if ($legacySession && $legacySession->target_roles === null) {
+            return $legacySession;
+        }
+
+        $payload = AttendanceSession::decodeDailyScanToken($token);
+        abort_unless($payload, 404, 'QR Code tidak valid atau sudah berganti untuk hari ini.');
+
+        $session = AttendanceSession::query()->findOrFail($payload['id']);
+        abort_unless(
+            hash_equals($session->dailyScanToken(), $token),
+            404,
+            'QR Code tidak valid atau sudah berganti untuk hari ini.',
+        );
+
+        return $session;
     }
 
     private function authorizeParticipant(Request $request, AttendanceSession $session): void
@@ -120,40 +210,85 @@ class AttendanceCheckInController extends Controller
         $user = $request->user();
         abort_unless($user && $user->is_active, 403);
 
-        $allowedRoles = match ($session->target_role) {
-            'atlet' => ['atlet', 'atlet_pelatih'],
-            'pelatih' => ['pelatih', 'atlet_pelatih'],
-            default => ['atlet', 'pelatih', 'atlet_pelatih'],
-        };
+        $userRoles = $user->getRoleNames()
+            ->filter(fn (string $role): bool => in_array($role, self::INTERNAL_ROLES, true))
+            ->values()
+            ->all();
 
-        abort_unless($user->hasAnyRole($allowedRoles), 403, 'Akun ini tidak termasuk peserta sesi absensi.');
+        abort_unless($userRoles !== [], 403, 'Role akun ini tidak memiliki akses absensi.');
 
-        if ($session->cabang_olahraga_id) {
-            $user->loadMissing(['atlet', 'pelatih']);
-            $caborIds = collect([
-                $user->cabang_olahraga_id,
-                $user->atlet?->cabang_olahraga_id,
-                $user->pelatih?->cabang_olahraga_id,
-            ])->filter()->map(fn ($id): int => (int) $id)->unique();
+        if (is_array($session->target_roles) && $session->target_roles !== []) {
+            $eligibleRoles = array_values(array_intersect($userRoles, $session->target_roles));
 
-            abort_unless($caborIds->contains((int) $session->cabang_olahraga_id), 403, 'Sesi absensi ini khusus untuk cabang olahraga tertentu.');
+            if (in_array('atlet_pelatih', $userRoles, true)) {
+                $eligibleRoles = array_merge($eligibleRoles, array_intersect(['atlet', 'pelatih'], $session->target_roles));
+            }
+
+            abort_unless($eligibleRoles !== [], 403, 'Kegiatan ini tidak ditujukan untuk role akun Anda.');
+        } else {
+            // Backward compatibility for sessions created before this patch.
+            $legacyAllowedRoles = match ($session->target_role) {
+                'atlet' => ['atlet', 'atlet_pelatih'],
+                'pelatih' => ['pelatih', 'atlet_pelatih'],
+                default => ['atlet', 'pelatih', 'atlet_pelatih'],
+            };
+
+            abort_unless(
+                array_intersect($userRoles, $legacyAllowedRoles) !== [],
+                403,
+                'Sesi absensi lama ini hanya menerima Atlet dan Pelatih.',
+            );
         }
+
+        if (! $session->cabang_olahraga_id) {
+            return;
+        }
+
+        if ($user->hasRole('admin_cabor')) {
+            abort_unless(
+                (int) $user->cabang_olahraga_id === (int) $session->cabang_olahraga_id,
+                403,
+                'Sesi absensi ini khusus untuk cabang olahraga lain.',
+            );
+
+            return;
+        }
+
+        if ($user->hasAnyRole(['admin_koni', 'staff_koni', 'ketua_koni', 'sekretaris_koni'])) {
+            return;
+        }
+
+        $user->loadMissing(['atlet', 'pelatih']);
+        $caborIds = collect([
+            $user->cabang_olahraga_id,
+            $user->atlet?->cabang_olahraga_id,
+            $user->pelatih?->cabang_olahraga_id,
+        ])->filter()->map(fn ($id): int => (int) $id)->unique();
+
+        abort_unless(
+            $caborIds->contains((int) $session->cabang_olahraga_id),
+            403,
+            'Sesi absensi ini khusus untuk cabang olahraga tertentu.',
+        );
     }
 
     private function participantCaborId($user, AttendanceSession $session): ?int
     {
-        $user->loadMissing(['atlet', 'pelatih']);
-        $caborIds = [
-            $user->cabang_olahraga_id,
-            $user->atlet?->cabang_olahraga_id,
-            $user->pelatih?->cabang_olahraga_id,
-        ];
-
         if ($session->cabang_olahraga_id) {
             return (int) $session->cabang_olahraga_id;
         }
 
-        foreach ($caborIds as $caborId) {
+        if ($user->hasAnyRole(['admin_koni', 'staff_koni', 'ketua_koni', 'sekretaris_koni'])) {
+            return null;
+        }
+
+        $user->loadMissing(['atlet', 'pelatih']);
+
+        foreach ([
+            $user->cabang_olahraga_id,
+            $user->atlet?->cabang_olahraga_id,
+            $user->pelatih?->cabang_olahraga_id,
+        ] as $caborId) {
             if ($caborId !== null) {
                 return (int) $caborId;
             }
@@ -162,30 +297,38 @@ class AttendanceCheckInController extends Controller
         return null;
     }
 
-    private function participantRole($user, string $targetRole): string
+    private function participantRole($user, AttendanceSession $session): string
     {
-        if ($targetRole === 'atlet' && $user->hasAnyRole(['atlet', 'atlet_pelatih'])) {
-            return 'atlet';
+        $userRoles = $user->getRoleNames()->all();
+
+        if (is_array($session->target_roles) && $session->target_roles !== []) {
+            foreach ($session->target_roles as $targetRole) {
+                if (in_array($targetRole, $userRoles, true)) {
+                    return $targetRole;
+                }
+
+                if ($targetRole === 'atlet' && in_array('atlet_pelatih', $userRoles, true)) {
+                    return 'atlet';
+                }
+
+                if ($targetRole === 'pelatih' && in_array('atlet_pelatih', $userRoles, true)) {
+                    return 'pelatih';
+                }
+            }
         }
 
-        if ($targetRole === 'pelatih' && $user->hasAnyRole(['pelatih', 'atlet_pelatih'])) {
-            return 'pelatih';
+        foreach (self::INTERNAL_ROLES as $role) {
+            if (in_array($role, $userRoles, true)) {
+                return $role;
+            }
         }
 
-        if ($user->hasRole('atlet')) {
-            return 'atlet';
-        }
-
-        if ($user->hasRole('pelatih')) {
-            return 'pelatih';
-        }
-
-        return 'atlet_pelatih';
+        return 'unknown';
     }
 
     private function decodeSelfie(string $dataUrl): ?string
     {
-        if (!preg_match('/\Adata:image\/jpeg;base64,([A-Za-z0-9+\/=\r\n]+)\z/D', $dataUrl, $matches)) {
+        if (! preg_match('/\Adata:image\/jpeg;base64,([A-Za-z0-9+\/=\r\n]+)\z/D', $dataUrl, $matches)) {
             return null;
         }
 

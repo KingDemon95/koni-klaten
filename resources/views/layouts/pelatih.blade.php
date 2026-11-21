@@ -77,6 +77,7 @@
                 Profil Saya
             </a>
 
+            <a href="{{ route('pelatih.absensi.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('pelatih.absensi.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Absensi QR</a>
             <a href="{{ route('pelatih.prestasi.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('pelatih.prestasi.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Prestasi Saya</a>
             <a href="{{ route('pelatih.izin-latihan.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('pelatih.izin-latihan.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Izin Latihan</a>
             <a href="{{ route('pelatih.templates.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('pelatih.templates.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Template Surat Izin</a>
@@ -119,6 +120,7 @@
                         <a href="{{ route('pelatih.profil') }}">
                             Profil Saya
                         </a>
+                        <a href="{{ route('pelatih.absensi.index') }}">Absensi QR</a>
                         <a href="{{ route('pelatih.prestasi.index') }}">Prestasi Saya</a>
                         <a href="{{ route('pelatih.izin-latihan.index') }}">Izin Latihan</a>
                         <a href="{{ route('pelatih.templates.index') }}">Template Surat Izin</a>

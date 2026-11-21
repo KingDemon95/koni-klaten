@@ -167,15 +167,20 @@ class StaffSecurityTest extends TestCase
             'DELETE',
         ];
 
-        $allowedInventoryWriteRoutes = [
+        $allowedStaffWriteRoutes = [
+            // Transaksi inventaris pusat yang memang menjadi kewenangan Staff.
             'staff.inventaris.mutasi' => ['POST'],
             'staff.inventaris.peminjaman.store' => ['POST'],
             'staff.inventaris.peminjaman.return' => ['POST'],
+
+            // Staff boleh membuat dan menutup sesi absensi yang dikelolanya.
+            'staff.absensi.store' => ['POST'],
+            'staff.absensi.close' => ['POST'],
         ];
 
         $allRoutes = collect(Route::getRoutes()->getRoutes());
 
-        $staffRoutes = $allRoutes->filter(function ($route) use ($allowedInventoryWriteRoutes) {
+        $staffRoutes = $allRoutes->filter(function ($route) use ($allowedStaffWriteRoutes) {
             return str_starts_with(
                 $route->uri(),
                 'staff/'
@@ -184,7 +189,7 @@ class StaffSecurityTest extends TestCase
                 && !str_starts_with($route->uri(), 'staff/surat')
                 && !str_starts_with($route->uri(), 'staff/templates-surat')
                 && !str_starts_with($route->uri(), 'staff/publikasi')
-                && !array_key_exists($route->getName(), $allowedInventoryWriteRoutes);
+                && !array_key_exists($route->getName(), $allowedStaffWriteRoutes);
         });
 
         $this->assertNotEmpty($staffRoutes);
@@ -202,13 +207,14 @@ class StaffSecurityTest extends TestCase
             );
         }
 
-        // Pastikan pengecualian inventaris tetap terbatas pada tiga endpoint POST ini.
+        // Pastikan pengecualian transaksi Staff hanya berlaku pada endpoint
+        // inventaris dan absensi yang secara eksplisit disetujui di atas.
         $routesByName = $allRoutes->keyBy(fn ($route) => $route->getName());
 
-        foreach ($allowedInventoryWriteRoutes as $routeName => $expectedMethods) {
+        foreach ($allowedStaffWriteRoutes as $routeName => $expectedMethods) {
             $this->assertTrue(
                 $routesByName->has($routeName),
-                'Route transaksi inventaris Staff tidak ditemukan: '.$routeName
+                'Route transaksi Staff tidak ditemukan: '.$routeName
             );
 
             $actualWriteMethods = array_values(array_intersect(
@@ -219,7 +225,7 @@ class StaffSecurityTest extends TestCase
             $this->assertSame(
                 $expectedMethods,
                 $actualWriteMethods,
-                'Metode HTTP route inventaris Staff tidak sesuai: '.$routeName
+                'Metode HTTP route Staff tidak sesuai: '.$routeName
             );
         }
     }

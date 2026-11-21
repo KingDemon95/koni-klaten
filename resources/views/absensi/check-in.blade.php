@@ -36,13 +36,14 @@
                 <span class="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">Login aktif</span>
             </div>
 
-            @if($existingRecord)
+            @if($attendanceAction === 'completed')
                 <div class="py-8 text-center">
                     <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl text-green-700">✓</div>
-                    <h3 class="mt-4 text-lg font-black">Absensi sudah tercatat</h3>
-                    <p class="mt-2 text-sm text-gray-500">Akun ini sudah melakukan check-in pada {{ $existingRecord->checked_in_at->format('d/m/Y H:i:s') }}.</p>
+                    <h3 class="mt-4 text-lg font-black">Absensi selesai</h3>
+                    <p class="mt-2 text-sm text-gray-500">Check-in tercatat {{ $existingRecord->checked_in_at->format('d/m/Y H:i:s') }}.</p>
+                    <p class="mt-1 text-sm text-gray-500">Check-out tercatat {{ $existingRecord->checked_out_at->format('d/m/Y H:i:s') }}.</p>
                 </div>
-            @elseif(!$canCheckIn)
+            @elseif(!$canRecord)
                 <div class="py-8 text-center">
                     <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-2xl text-amber-700">!</div>
                     <h3 class="mt-4 text-lg font-black">Absensi belum tersedia</h3>
@@ -51,16 +52,36 @@
                             Pengelola sudah menutup sesi ini.
                         @elseif(now()->lt($session->starts_at))
                             Sesi belum dimulai. Silakan kembali saat waktu absensi dibuka.
-                        @else
+                        @elseif(now()->gt($session->ends_at))
                             Waktu absensi sudah berakhir.
+                        @else
+                            Waktu absensi belum tersedia.
                         @endif
                     </p>
+                    @if($existingRecord)
+                        <p class="mt-3 text-xs text-gray-500">Check-in Anda tercatat {{ $existingRecord->checked_in_at->format('d/m/Y H:i:s') }}, tetapi sesi tidak lagi menerima check-out.</p>
+                    @endif
                 </div>
             @else
-                <form id="attendance-form" method="POST" action="{{ route('attendance.check-in.store', $session->token) }}" class="space-y-5 pt-5">
+                <form id="attendance-form" method="POST" action="{{ route('attendance.check-in.store', request()->route('token')) }}" class="space-y-5 pt-5">
                     @csrf
+                    <input type="hidden" name="attendance_action" value="{{ $attendanceAction }}">
+
+                    @if($attendanceAction === 'check_out')
+                        <div class="rounded-xl border border-green-100 bg-green-50 p-4">
+                            <p class="text-xs font-bold uppercase tracking-wide text-green-700">Check-in sudah tercatat</p>
+                            <p class="mt-1 text-sm font-semibold text-green-900">{{ $existingRecord->checked_in_at->format('d/m/Y H:i:s') }}</p>
+                        </div>
+                    @endif
+
                     <div>
-                        <h3 class="font-black">Ambil foto selfie</h3>
+                        <h3 class="font-black">
+                            @if(auth()->user()->hasRole('staff_koni'))
+                                {{ $attendanceAction === 'check_in' ? 'Ambil selfie check-in' : 'Ambil selfie check-out' }}
+                            @else
+                                {{ $attendanceAction === 'check_in' ? 'Ambil foto selfie untuk check-in' : 'Ambil foto selfie untuk check-out' }}
+                            @endif
+                        </h3>
                         <p class="mt-1 text-xs leading-5 text-gray-500">Aktifkan kamera depan, posisikan wajah di tengah, lalu ambil foto. Sistem hanya menerima foto yang diambil langsung dari kamera pada halaman ini.</p>
                     </div>
 
@@ -77,16 +98,16 @@
                         <button type="button" id="capture-selfie" disabled class="rounded-lg bg-gray-300 px-4 py-3 text-sm font-bold text-gray-500">Ambil Selfie</button>
                     </div>
 
-                    <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-xs leading-5 text-blue-800">Akses kamera membutuhkan HTTPS. Pengecualian hanya berlaku untuk alamat localhost. Jika membuka halaman melalui alamat IP jaringan lokal, gunakan domain atau tunnel HTTPS.</div>
+                    <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-xs leading-5 text-blue-800">Selfie wajib untuk check-in dan check-out. Akses kamera membutuhkan HTTPS. Pengecualian hanya berlaku untuk alamat localhost.</div>
 
-                    <button id="submit-attendance" type="submit" disabled class="w-full rounded-lg bg-[#E60012] px-5 py-3.5 text-sm font-black text-white opacity-50">Kirim Absensi</button>
+                    <button id="submit-attendance" type="submit" disabled class="w-full rounded-lg bg-[#E60012] px-5 py-3.5 text-sm font-black text-white opacity-50">{{ $attendanceAction === 'check_in' ? 'Kirim Check-in' : 'Kirim Check-out' }}</button>
                 </form>
             @endif
         </section>
         <p class="text-center text-xs text-gray-400">KONI Kabupaten Klaten · Sistem Absensi Digital</p>
     </main>
 
-    @if(!$existingRecord && $canCheckIn)
+    @if($canRecord)
         <script>
             (() => {
                 const video = document.getElementById('camera-preview');

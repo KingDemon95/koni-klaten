@@ -88,10 +88,10 @@ Route::get('/publikasi/{publikasi:slug}/media/{variant?}', [PublicPublikasiContr
 Route::middleware('auth')->group(function () {
 
     Route::get('/absensi/scan/{token}', [AttendanceCheckInController::class, 'show'])
-        ->whereAlphaNumeric('token')
+        ->where('token', '[A-Za-z0-9_.-]+')
         ->name('attendance.check-in.show');
     Route::post('/absensi/scan/{token}', [AttendanceCheckInController::class, 'store'])
-        ->whereAlphaNumeric('token')
+        ->where('token', '[A-Za-z0-9_.-]+')
         ->name('attendance.check-in.store');
 
     Route::get('/akun/keamanan/password', [\App\Http\Controllers\AccountSecurityController::class, 'edit'])
@@ -251,6 +251,12 @@ Route::middleware(['auth', 'role:admin_koni|ketua_koni'])
         ->whereIn('jenis', ['cabor', 'prestasi'])
         ->name('laporan.export');
 
+    // Ketua dapat membaca rekap, sedangkan aksi pengelolaan dibatasi pada Admin KONI.
+    Route::get('absensi', [AttendanceSessionController::class, 'index'])->name('absensi.index');
+    Route::get('absensi/{attendanceSession}/export', [AttendanceSessionController::class, 'export'])->whereNumber('attendanceSession')->name('absensi.export');
+    Route::get('absensi/record/{attendanceRecord}/selfie', [AttendanceSessionController::class, 'selfie'])->whereNumber('attendanceRecord')->name('absensi.selfie');
+    Route::get('absensi/{attendanceSession}', [AttendanceSessionController::class, 'show'])->whereNumber('attendanceSession')->name('absensi.show');
+
     $registerInventoryRoutes('manage');
 });
 
@@ -271,13 +277,16 @@ Route::middleware(['auth', 'role:admin_koni'])
     Route::get('/tampilan-dashboard', [DashboardAppearanceController::class, 'edit'])->name('dashboard-appearance.edit');
     Route::put('/tampilan-dashboard', [DashboardAppearanceController::class, 'update'])->name('dashboard-appearance.update');
 
-    Route::get('/absensi', [AttendanceSessionController::class, 'index'])->name('absensi.index');
+    Route::get('/tampilan-website', [\App\Http\Controllers\Admin\WebsiteAppearanceController::class, 'edit'])->name('website-appearance.edit');
+    Route::put('/tampilan-website', [\App\Http\Controllers\Admin\WebsiteAppearanceController::class, 'update'])->name('website-appearance.update');
+    Route::post('/tampilan-website/publish', [\App\Http\Controllers\Admin\WebsiteAppearanceController::class, 'publish'])->name('website-appearance.publish');
+    Route::get('/tampilan-website/preview/{page}', [\App\Http\Controllers\Admin\WebsiteAppearanceController::class, 'preview'])
+        ->whereIn('page', ['home', 'cabor', 'struktur', 'agenda', 'statistik', 'berita', 'dokumentasi'])
+        ->name('website-appearance.preview');
+
     Route::get('/absensi/create', [AttendanceSessionController::class, 'create'])->name('absensi.create');
     Route::post('/absensi', [AttendanceSessionController::class, 'store'])->name('absensi.store');
-    Route::get('/absensi/{attendanceSession}/export', [AttendanceSessionController::class, 'export'])->whereNumber('attendanceSession')->name('absensi.export');
     Route::post('/absensi/{attendanceSession}/tutup', [AttendanceSessionController::class, 'close'])->whereNumber('attendanceSession')->name('absensi.close');
-    Route::get('/absensi/record/{attendanceRecord}/selfie', [AttendanceSessionController::class, 'selfie'])->whereNumber('attendanceRecord')->name('absensi.selfie');
-    Route::get('/absensi/{attendanceSession}', [AttendanceSessionController::class, 'show'])->whereNumber('attendanceSession')->name('absensi.show');
 });
 
 // Sekretaris memiliki akses baca data organisasi, persuratan, template, dan laporan.
@@ -306,6 +315,11 @@ Route::middleware(['auth', 'role:sekretaris_koni'])
     Route::get('laporan/export/{jenis}', [ReportController::class, 'export'])
         ->whereIn('jenis', ['cabor', 'prestasi'])
         ->name('laporan.export');
+
+    Route::get('absensi', [AttendanceSessionController::class, 'index'])->name('absensi.index');
+    Route::get('absensi/{attendanceSession}/export', [AttendanceSessionController::class, 'export'])->whereNumber('attendanceSession')->name('absensi.export');
+    Route::get('absensi/record/{attendanceRecord}/selfie', [AttendanceSessionController::class, 'selfie'])->whereNumber('attendanceRecord')->name('absensi.selfie');
+    Route::get('absensi/{attendanceSession}', [AttendanceSessionController::class, 'show'])->whereNumber('attendanceSession')->name('absensi.show');
 
     $registerInventoryRoutes('read');
 });
@@ -378,6 +392,14 @@ Route::middleware([
     Route::post('izin-latihan/{izinLatihan}/keputusan', [CaborIzinLatihanController::class, 'decide'])->name('izin-latihan.keputusan');
     Route::get('izin-latihan/{izinLatihan}/download', [CaborIzinLatihanController::class, 'download'])->name('izin-latihan.download');
 
+    Route::get('absensi', [AttendanceSessionController::class, 'index'])->name('absensi.index');
+    Route::get('absensi/create', [AttendanceSessionController::class, 'create'])->name('absensi.create');
+    Route::post('absensi', [AttendanceSessionController::class, 'store'])->name('absensi.store');
+    Route::get('absensi/{attendanceSession}/export', [AttendanceSessionController::class, 'export'])->whereNumber('attendanceSession')->name('absensi.export');
+    Route::post('absensi/{attendanceSession}/tutup', [AttendanceSessionController::class, 'close'])->whereNumber('attendanceSession')->name('absensi.close');
+    Route::get('absensi/record/{attendanceRecord}/selfie', [AttendanceSessionController::class, 'selfie'])->whereNumber('attendanceRecord')->name('absensi.selfie');
+    Route::get('absensi/{attendanceSession}', [AttendanceSessionController::class, 'show'])->whereNumber('attendanceSession')->name('absensi.show');
+
     $registerInventoryRoutes('manage');
 });
 
@@ -438,6 +460,14 @@ Route::middleware([
     Route::post('publikasi/{publikasi}/publish', [PublikasiController::class, 'publish'])->name('publikasi.publish');
     Route::resource('publikasi', PublikasiController::class);
 
+    Route::get('absensi', [AttendanceSessionController::class, 'index'])->name('absensi.index');
+    Route::get('absensi/create', [AttendanceSessionController::class, 'create'])->name('absensi.create');
+    Route::post('absensi', [AttendanceSessionController::class, 'store'])->name('absensi.store');
+    Route::get('absensi/{attendanceSession}/export', [AttendanceSessionController::class, 'export'])->whereNumber('attendanceSession')->name('absensi.export');
+    Route::post('absensi/{attendanceSession}/tutup', [AttendanceSessionController::class, 'close'])->whereNumber('attendanceSession')->name('absensi.close');
+    Route::get('absensi/record/{attendanceRecord}/selfie', [AttendanceSessionController::class, 'selfie'])->whereNumber('attendanceRecord')->name('absensi.selfie');
+    Route::get('absensi/{attendanceSession}', [AttendanceSessionController::class, 'show'])->whereNumber('attendanceSession')->name('absensi.show');
+
     $registerInventoryRoutes('operate');
 });
 
@@ -464,6 +494,8 @@ Route::middleware([
     Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
     Route::get('templates-surat/{template}/download', [TemplateSuratController::class, 'download'])->name('templates.download');
 
+    Route::get('absensi', [AttendanceSessionController::class, 'index'])->name('absensi.index');
+
 });
 
 Route::middleware([
@@ -488,5 +520,7 @@ Route::middleware([
 
     Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
     Route::get('templates-surat/{template}/download', [TemplateSuratController::class, 'download'])->name('templates.download');
+
+    Route::get('absensi', [AttendanceSessionController::class, 'index'])->name('absensi.index');
 
 });

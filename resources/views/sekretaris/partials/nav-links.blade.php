@@ -8,6 +8,7 @@
         ['label' => 'Persuratan & Persetujuan', 'route' => 'sekretaris.surat.index', 'active' => 'sekretaris.surat.*'],
         ['label' => 'Template Surat', 'route' => 'sekretaris.templates.index', 'active' => 'sekretaris.templates.*'],
         ['label' => 'Laporan & Rekapitulasi', 'route' => 'sekretaris.laporan.index', 'active' => 'sekretaris.laporan.*'],
+        ['label' => 'Absensi QR & Rekap', 'route' => 'sekretaris.absensi.index', 'active' => 'sekretaris.absensi.*'],
         ['label' => 'Inventaris', 'route' => 'sekretaris.inventaris.index', 'active' => 'sekretaris.inventaris.*'],
         ['label' => 'Riwayat Aktivitas', 'route' => 'sekretaris.audit.index', 'active' => 'sekretaris.audit.*'],
         ['label' => 'Keamanan Akun', 'route' => 'account.password.edit', 'active' => 'account.password.*'],
