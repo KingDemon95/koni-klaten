@@ -17,6 +17,10 @@ use App\Http\Controllers\Cabor\IzinLatihanController as CaborIzinLatihanControll
 use App\Http\Controllers\PublikasiController;
 use App\Http\Controllers\PublicPublikasiController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\CustomFieldController;
+use App\Http\Controllers\Admin\DashboardAppearanceController;
+use App\Http\Controllers\Admin\AttendanceSessionController;
+use App\Http\Controllers\Attendance\AttendanceCheckInController;
 use App\Http\Controllers\PimpinanDashboardController;
 use App\Http\Controllers\Admin\ProfilKoniController;
 use App\Http\Controllers\Admin\PrestasiMonitoringController;
@@ -82,6 +86,13 @@ Route::get('/dokumentasi/{publikasi:slug}', [PublicPublikasiController::class, '
 Route::get('/publikasi/{publikasi:slug}/media/{variant?}', [PublicPublikasiController::class, 'media'])->whereIn('variant', ['media', 'thumbnail'])->name('public.publikasi.media');
 
 Route::middleware('auth')->group(function () {
+
+    Route::get('/absensi/scan/{token}', [AttendanceCheckInController::class, 'show'])
+        ->whereAlphaNumeric('token')
+        ->name('attendance.check-in.show');
+    Route::post('/absensi/scan/{token}', [AttendanceCheckInController::class, 'store'])
+        ->whereAlphaNumeric('token')
+        ->name('attendance.check-in.store');
 
     Route::get('/akun/keamanan/password', [\App\Http\Controllers\AccountSecurityController::class, 'edit'])
         ->name('account.password.edit');
@@ -251,6 +262,22 @@ Route::middleware(['auth', 'role:admin_koni'])
     Route::get('/pengaturan', [ProfilKoniController::class, 'edit'])->name('settings');
     Route::get('/kesehatan-sistem', [SystemHealthController::class, 'index'])->name('system-health');
     Route::put('/pengaturan', [ProfilKoniController::class, 'update'])->name('settings.update');
+
+    Route::get('/master-data', [CustomFieldController::class, 'index'])->name('master-data.index');
+    Route::post('/master-data', [CustomFieldController::class, 'store'])->name('master-data.store');
+    Route::put('/master-data/{customField}', [CustomFieldController::class, 'update'])->whereNumber('customField')->name('master-data.update');
+    Route::delete('/master-data/{customField}', [CustomFieldController::class, 'destroy'])->whereNumber('customField')->name('master-data.destroy');
+
+    Route::get('/tampilan-dashboard', [DashboardAppearanceController::class, 'edit'])->name('dashboard-appearance.edit');
+    Route::put('/tampilan-dashboard', [DashboardAppearanceController::class, 'update'])->name('dashboard-appearance.update');
+
+    Route::get('/absensi', [AttendanceSessionController::class, 'index'])->name('absensi.index');
+    Route::get('/absensi/create', [AttendanceSessionController::class, 'create'])->name('absensi.create');
+    Route::post('/absensi', [AttendanceSessionController::class, 'store'])->name('absensi.store');
+    Route::get('/absensi/{attendanceSession}/export', [AttendanceSessionController::class, 'export'])->whereNumber('attendanceSession')->name('absensi.export');
+    Route::post('/absensi/{attendanceSession}/tutup', [AttendanceSessionController::class, 'close'])->whereNumber('attendanceSession')->name('absensi.close');
+    Route::get('/absensi/record/{attendanceRecord}/selfie', [AttendanceSessionController::class, 'selfie'])->whereNumber('attendanceRecord')->name('absensi.selfie');
+    Route::get('/absensi/{attendanceSession}', [AttendanceSessionController::class, 'show'])->whereNumber('attendanceSession')->name('absensi.show');
 });
 
 // Sekretaris memiliki akses baca data organisasi, persuratan, template, dan laporan.

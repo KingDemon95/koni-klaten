@@ -81,6 +81,7 @@
                 @endif
             </div>
         </div>
+        @include('admin.partials.custom-fields', ['customFields' => $customFields, 'values' => $item->custom_data ?? []])
         <div class="flex flex-wrap gap-3 border-t border-gray-100 pt-5">
             <button class="rounded-lg bg-[#E60012] px-5 py-3 text-sm font-bold text-white hover:bg-red-700">Simpan Biodata</button>
             <a href="{{ route($routePrefix.'.profil') }}" class="rounded-lg border border-gray-300 px-5 py-3 text-sm font-bold text-gray-700">Batal</a>

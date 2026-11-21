@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Cabor;
 
 use App\Http\Controllers\Controller;
 use App\Support\AccountProvisioner;
+use App\Support\CustomFields\CustomFieldManager;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -68,7 +69,10 @@ abstract class CaborProfileController extends Controller
                 'mimes:jpg,jpeg,png,webp',
                 'max:2048',
             ],
-        ], $this->extraRules());
+        ], array_merge(
+            $this->extraRules(),
+            app(CustomFieldManager::class)->validationRules($this->jenis()),
+        ));
     }
 
     private function findOwned(
@@ -105,6 +109,7 @@ abstract class CaborProfileController extends Controller
             'cabor' => $request->user()->cabangOlahraga,
             'item' => new $class(),
             'jenis' => $this->jenis(),
+            'customFields' => app(CustomFieldManager::class)->activeFields($this->jenis()),
         ]);
     }
 
@@ -115,6 +120,7 @@ abstract class CaborProfileController extends Controller
         Gate::authorize('create', $class);
 
         $data = $request->validate($this->rules());
+        $data['custom_data'] = app(CustomFieldManager::class)->validatedValues($request, $this->jenis());
 
         // Jangan menerima user_id atau cabang_olahraga_id
         // dari request pengguna.
@@ -176,6 +182,7 @@ abstract class CaborProfileController extends Controller
             'cabor' => $request->user()->cabangOlahraga,
             'item' => $item,
             'jenis' => $this->jenis(),
+            'customFields' => app(CustomFieldManager::class)->activeFields($this->jenis()),
         ]);
     }
 
@@ -189,6 +196,11 @@ abstract class CaborProfileController extends Controller
 
         $hadAccount = $item->user_id !== null;
         $data = $request->validate($this->rules($item));
+        $data['custom_data'] = app(CustomFieldManager::class)->validatedValues(
+            $request,
+            $this->jenis(),
+            $item->custom_data ?? [],
+        );
 
         // Tidak boleh mengubah user_id atau cabang_olahraga_id lewat form.
         unset($data['foto']);

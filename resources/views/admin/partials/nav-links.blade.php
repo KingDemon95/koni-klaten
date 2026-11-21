@@ -18,6 +18,13 @@ $items = [
 ];
 
 if (!$isKetua) {
+    array_splice($items, 4, 0, [[
+        'label' => 'Master Data',
+        'route' => 'admin.master-data.index',
+        'active' => 'admin.master-data.*',
+    ]]);
+    $items[] = ['label' => 'Absensi QR & Selfie', 'route' => 'admin.absensi.index', 'active' => 'admin.absensi.*'];
+    $items[] = ['label' => 'Tampilan Dashboard', 'route' => 'admin.dashboard-appearance.edit', 'active' => 'admin.dashboard-appearance.*'];
     $items[] = ['label' => 'Manajemen Pengguna', 'route' => 'admin.pengguna.index', 'active' => 'admin.pengguna.*'];
     $items[] = ['label' => 'Kesehatan Sistem', 'route' => 'admin.system-health', 'active' => 'admin.system-health'];
     $items[] = ['label' => 'Profil & Pengaturan KONI', 'route' => 'admin.settings', 'active' => 'admin.settings'];

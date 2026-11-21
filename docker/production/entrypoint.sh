@@ -52,7 +52,20 @@ if [ "$(id -u)" -eq 0 ]; then
         gosu www-data php artisan view:cache
     fi
 
-    exec gosu www-data "$@"
+    
+    # PHP-FPM master berjalan sebagai root.
+    # Worker tetap menggunakan www-data dari konfigurasi pool.
+    case "${1##*/}" in
+        php-fpm)
+            exec "$@"
+            ;;
+        *)
+            exec gosu www-data "$@"
+            ;;
+    esac
 fi
 
+# Jika container berjalan sebagai non-root,
+# gunakan user yang sedang aktif.
 exec "$@"
+

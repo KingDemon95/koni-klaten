@@ -328,6 +328,8 @@
     </div>
 
 
+    @include('admin.partials.custom-fields', ['customFields' => $customFields, 'values' => $item->custom_data ?? []])
+
     <div class="mt-7 flex flex-col-reverse justify-end gap-3 sm:flex-row">
 
         <a

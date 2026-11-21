@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Atlet;
 
 use App\Http\Controllers\Controller;
 use App\Models\Atlet;
+use App\Models\CustomField;
+use App\Support\CustomFields\CustomFieldManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -34,6 +36,7 @@ class AtletPanelController extends Controller
         return view('atlet.profil', [
             'atlet' => $this->profilMilikAkun($request),
             'user' => $request->user(),
+            'customFields' => CustomField::query()->forEntity('atlet')->orderBy('sort_order')->orderBy('id')->get(),
         ]);
     }
 
@@ -51,6 +54,7 @@ class AtletPanelController extends Controller
             'jenis' => 'atlet',
             'routePrefix' => 'atlet',
             'layout' => 'layouts.atlet',
+            'customFields' => app(CustomFieldManager::class)->activeFields('atlet'),
         ]);
     }
 
@@ -63,7 +67,8 @@ class AtletPanelController extends Controller
                 ->with('error', 'Profil Atlet belum terhubung dengan akun Anda.');
         }
 
-        $data = $request->validate([
+        $fieldManager = app(CustomFieldManager::class);
+        $data = $request->validate(array_merge([
             'nama_lengkap' => ['required', 'string', 'max:150'],
             'jenis_kelamin' => ['required', Rule::in(['L', 'P'])],
             'tempat_lahir' => ['nullable', 'string', 'max:100'],
@@ -72,7 +77,8 @@ class AtletPanelController extends Controller
             'no_telepon' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
             'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-        ]);
+        ], $fieldManager->validationRules('atlet')));
+        $data['custom_data'] = $fieldManager->validatedValues($request, 'atlet', $atlet->custom_data ?? []);
 
         unset($data['foto']);
         $oldPhoto = $atlet->foto_path;

@@ -26,12 +26,14 @@ class Pelatih extends Model
         'pengalaman_tahun',
         'foto_path',
         'status',
+        'custom_data',
     ];
 
     protected function casts(): array
     {
         return [
             'tanggal_lahir' => 'date',
+            'custom_data' => 'array',
             'pengalaman_tahun' => 'integer',
         ];
     }

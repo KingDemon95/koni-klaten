@@ -6,6 +6,10 @@
 @section('content')
 <div class="space-y-8">
     <section class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#A90010] to-[#E60012] p-6 text-white shadow-lg sm:p-8">
+        @if($dashboardSetting?->backdrop_path)
+            <img src="{{ asset('storage/'.$dashboardSetting->backdrop_path) }}" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full object-cover" style="object-position: {{ $dashboardSetting->background_position }}">
+            <div class="absolute inset-0 bg-black" style="opacity: {{ $dashboardSetting->overlay_opacity / 100 }}"></div>
+        @endif
         <div class="relative z-10 max-w-3xl">
             <p class="text-xs font-bold tracking-[0.25em] text-yellow-300">PUSAT KENDALI ORGANISASI</p>
             <h2 class="mt-3 text-2xl font-black sm:text-3xl">Selamat datang, {{ auth()->user()->name }}.</h2>

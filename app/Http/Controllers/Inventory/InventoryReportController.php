@@ -108,22 +108,23 @@ class InventoryReportController extends Controller
 
         if (!empty($filters['q'])) {
             $search = trim($filters['q']);
+
             $query->where(function ($builder) use ($search): void {
-                $builder->where('nama_barang', 'like', "%{$search}%")
-                    ->orWhere('kode_barang', 'like', "%{$search}%");
+                $builder->where('inventory_items.nama_barang', 'like', "%{$search}%")
+                    ->orWhere('inventory_items.kode_barang', 'like', "%{$search}%");
             });
         }
 
         if (!empty($filters['kondisi'])) {
-            $query->where('kondisi', $filters['kondisi']);
+            $query->where('inventory_items.kondisi', $filters['kondisi']);
         }
 
         if (!empty($filters['cabor_id']) && !$request->user()->hasRole('admin_cabor')) {
-            $query->where('cabang_olahraga_id', $filters['cabor_id']);
+            $query->where('inventory_items.cabang_olahraga_id', $filters['cabor_id']);
         }
 
         if (!empty($filters['category_id'])) {
-            $query->where('inventory_category_id', $filters['category_id']);
+            $query->where('inventory_items.inventory_category_id', $filters['category_id']);
         }
 
         return [$query, $filters];

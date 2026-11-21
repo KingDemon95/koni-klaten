@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Pelatih;
 use App\Models\CabangOlahraga;
 use App\Support\AccountProvisioner;
+use App\Support\CustomFields\CustomFieldManager;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -86,6 +87,7 @@ class PelatihController extends Controller
         return view('admin.pelatih.create', [
             'pelatih' => new Pelatih(),
             'cabors' => $cabors,
+            'customFields' => app(CustomFieldManager::class)->activeFields('pelatih'),
         ]);
     }
 
@@ -95,7 +97,8 @@ class PelatihController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $fieldManager = app(CustomFieldManager::class);
+        $validated = $request->validate(array_merge([
             'cabang_olahraga_id' => [
                 'required',
                 'integer',
@@ -114,7 +117,8 @@ class PelatihController extends Controller
             'pengalaman_tahun' => ['nullable', 'integer', 'min:0', 'max:60'],
             'status' => ['required', Rule::in(['aktif', 'nonaktif'])],
             'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-        ]);
+        ], $fieldManager->validationRules('pelatih')));
+        $validated['custom_data'] = $fieldManager->validatedValues($request, 'pelatih');
 
         $photoPath = null;
         if ($request->hasFile('foto')) {
@@ -157,10 +161,11 @@ class PelatihController extends Controller
     {
         $cabors = CabangOlahraga::orderBy('nama')->get();
 
-        return view('admin.pelatih.edit', compact(
-            'pelatih',
-            'cabors'
-        ));
+        return view('admin.pelatih.edit', [
+            'pelatih' => $pelatih,
+            'cabors' => $cabors,
+            'customFields' => app(CustomFieldManager::class)->activeFields('pelatih'),
+        ]);
     }
 
 
@@ -177,7 +182,8 @@ class PelatihController extends Controller
             $emailUnique->ignore($pelatih->user_id);
         }
 
-        $validated = $request->validate([
+        $fieldManager = app(CustomFieldManager::class);
+        $validated = $request->validate(array_merge([
             'cabang_olahraga_id' => ['required', 'integer', 'exists:cabang_olahraga,id'],
             'nama_lengkap' => ['required', 'string', 'max:150'],
             'jenis_kelamin' => ['required', Rule::in(['L', 'P'])],
@@ -197,7 +203,8 @@ class PelatihController extends Controller
             'pengalaman_tahun' => ['nullable', 'integer', 'min:0', 'max:60'],
             'status' => ['required', Rule::in(['aktif', 'nonaktif'])],
             'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-        ]);
+        ], $fieldManager->validationRules('pelatih')));
+        $validated['custom_data'] = $fieldManager->validatedValues($request, 'pelatih', $pelatih->custom_data ?? []);
 
         $photoPath = null;
         if ($request->hasFile('foto')) {

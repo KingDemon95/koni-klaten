@@ -374,6 +374,9 @@
     </div>
 
 
+    @include('admin.partials.custom-fields', ['customFields' => $customFields, 'values' => $pelatih->custom_data ?? []])
+
+
     <!-- BUTTON -->
     <div class="flex flex-col-reverse justify-end gap-3 border-t border-gray-100 pt-6 sm:flex-row">
 

@@ -67,6 +67,16 @@ COPY . .
 COPY --from=vendor /var/www/html/vendor ./vendor
 COPY --from=frontend /build/public/build ./public/build
 
+# Normalize application source permissions for www-data.
+RUN set -eux; \
+    for directory in app bootstrap config database public resources routes; do \
+        if [ -d "$directory" ]; then \
+            find "$directory" -type d -exec chmod 0755 {} +; \
+            find "$directory" -type f -exec chmod 0644 {} +; \
+        fi; \
+    done; \
+    chmod 0644 artisan
+
 COPY docker/production/php.ini /usr/local/etc/php/conf.d/99-koni-production.ini
 COPY docker/production/php-fpm.conf /usr/local/etc/php-fpm.d/zz-koni-production.conf
 COPY docker/production/entrypoint.sh /usr/local/bin/koni-production-entrypoint

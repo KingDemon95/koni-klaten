@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Atlet;
 use App\Models\CabangOlahraga;
 use App\Support\AccountProvisioner;
+use App\Support\CustomFields\CustomFieldManager;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -85,6 +86,7 @@ class AtletController extends Controller
         return view('admin.atlet.create', [
             'atlet' => new Atlet(),
             'cabors' => $cabors,
+            'customFields' => app(CustomFieldManager::class)->activeFields('atlet'),
         ]);
     }
 
@@ -94,7 +96,8 @@ class AtletController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $fieldManager = app(CustomFieldManager::class);
+        $validated = $request->validate(array_merge([
             'cabang_olahraga_id' => [
                 'required',
                 'integer',
@@ -109,7 +112,8 @@ class AtletController extends Controller
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'status' => ['required', Rule::in(['aktif', 'nonaktif'])],
             'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-        ]);
+        ], $fieldManager->validationRules('atlet')));
+        $validated['custom_data'] = $fieldManager->validatedValues($request, 'atlet');
 
         $photoPath = null;
         if ($request->hasFile('foto')) {
@@ -153,10 +157,11 @@ class AtletController extends Controller
     {
         $cabors = CabangOlahraga::orderBy('nama')->get();
 
-        return view('admin.atlet.edit', compact(
-            'atlet',
-            'cabors'
-        ));
+        return view('admin.atlet.edit', [
+            'atlet' => $atlet,
+            'cabors' => $cabors,
+            'customFields' => app(CustomFieldManager::class)->activeFields('atlet'),
+        ]);
     }
 
 
@@ -173,7 +178,8 @@ class AtletController extends Controller
             $emailUnique->ignore($atlet->user_id);
         }
 
-        $validated = $request->validate([
+        $fieldManager = app(CustomFieldManager::class);
+        $validated = $request->validate(array_merge([
             'cabang_olahraga_id' => ['required', 'integer', 'exists:cabang_olahraga,id'],
             'nama_lengkap' => ['required', 'string', 'max:150'],
             'jenis_kelamin' => ['required', Rule::in(['L', 'P'])],
@@ -189,7 +195,8 @@ class AtletController extends Controller
             ],
             'status' => ['required', Rule::in(['aktif', 'nonaktif'])],
             'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-        ]);
+        ], $fieldManager->validationRules('atlet')));
+        $validated['custom_data'] = $fieldManager->validatedValues($request, 'atlet', $atlet->custom_data ?? []);
 
         $photoPath = null;
         if ($request->hasFile('foto')) {

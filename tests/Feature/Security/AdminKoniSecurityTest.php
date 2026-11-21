@@ -78,6 +78,9 @@ class AdminKoniSecurityTest extends TestCase
             'admin.templates.index',
             'admin.publikasi.index',
             'admin.settings',
+            'admin.master-data.index',
+            'admin.dashboard-appearance.edit',
+            'admin.absensi.index',
         ];
 
         foreach ($routes as $routeName) {

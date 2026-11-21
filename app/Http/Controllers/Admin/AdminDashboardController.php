@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Agenda;
+use App\Models\DashboardSetting;
 use App\Models\Atlet;
 use App\Models\CabangOlahraga;
 use App\Models\Pelatih;
@@ -64,7 +65,10 @@ class AdminDashboardController extends Controller
             ->limit(5)
             ->get();
 
+        $dashboardSetting = DashboardSetting::current();
+
         return view('admin.dashboard', compact(
+            'dashboardSetting',
             'stats',
             'roleCounts',
             'queues',

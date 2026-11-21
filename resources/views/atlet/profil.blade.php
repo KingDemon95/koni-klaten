@@ -241,6 +241,8 @@
     </section>
 
 
+    @include('admin.partials.custom-data-display', ['profile' => $atlet, 'customFields' => $customFields])
+
     <!-- INFO -->
     <div class="mt-7 rounded-xl border border-blue-100 bg-blue-50 p-5">
 

@@ -16,11 +16,11 @@ class InventoryAccess
         }
 
         if ($user->hasRole('staff_koni')) {
-            return InventoryItem::query()->whereNull('cabang_olahraga_id');
+            return InventoryItem::query()->whereNull('inventory_items.cabang_olahraga_id');
         }
 
         if ($user->hasRole('admin_cabor') && $user->cabang_olahraga_id) {
-            return InventoryItem::query()->where('cabang_olahraga_id', $user->cabang_olahraga_id);
+            return InventoryItem::query()->where('inventory_items.cabang_olahraga_id', $user->cabang_olahraga_id);
         }
 
         return InventoryItem::query()->whereRaw('1 = 0');
