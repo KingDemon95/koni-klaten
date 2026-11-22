@@ -1,0 +1,16 @@
+PATCH 23.2.1 HOTFIX - Perbaikan Layout Absensi Admin Cabor
+
+Files:
+- resources/views/layouts/cabor.blade.php
+- tests/Feature/AttendanceWorkflowTest.php
+- PATCH-23.2.1-HOTFIX-INSTRUKSI.md
+- PATCH-23.2.1-HOTFIX-MANIFEST.txt
+
+Fix:
+- Resolve the assigned cabor from the authenticated Admin Cabor account when a view does not explicitly pass $cabor.
+- Render a safe fallback label if no cabor relation exists.
+- Add regression coverage for Admin Cabor attendance index, create, and detail pages.
+
+Database migrations: none
+Frontend build: not required
+Docker rebuild: not required

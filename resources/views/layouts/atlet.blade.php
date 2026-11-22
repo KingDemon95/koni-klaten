@@ -77,7 +77,7 @@
                 Profil Saya
             </a>
 
-            <a href="{{ route('atlet.absensi.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('atlet.absensi.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Absensi QR</a>
+            <a href="{{ route('atlet.absensi.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('atlet.absensi.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Absensi Saya</a>
             <a href="{{ route('atlet.prestasi.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('atlet.prestasi.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Prestasi Saya</a>
             <a href="{{ route('atlet.izin-latihan.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('atlet.izin-latihan.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Izin Latihan</a>
             <a href="{{ route('atlet.templates.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('atlet.templates.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Template Surat Izin</a>
@@ -120,7 +120,7 @@
                         <a href="{{ route('atlet.profil') }}">
                             Profil Saya
                         </a>
-                        <a href="{{ route('atlet.absensi.index') }}">Absensi QR</a>
+                        <a href="{{ route('atlet.absensi.index') }}">Absensi Saya</a>
                         <a href="{{ route('atlet.prestasi.index') }}">Prestasi Saya</a>
                         <a href="{{ route('atlet.izin-latihan.index') }}">Izin Latihan</a>
                         <a href="{{ route('atlet.templates.index') }}">Template Surat Izin</a>

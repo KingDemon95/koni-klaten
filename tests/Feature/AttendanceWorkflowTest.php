@@ -8,6 +8,7 @@ use App\Models\CabangOlahraga;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Str;
@@ -83,6 +84,9 @@ class AttendanceWorkflowTest extends TestCase
         $this->actingAs($admin)->get(route('admin.absensi.show', $session))
             ->assertOk()
             ->assertSee('QR Code Harian')
+            ->assertSee('Unduh SVG')
+            ->assertSee('Unduh PNG')
+            ->assertSee('Cetak QR')
             ->assertSee('absensi/scan/'.$session->dailyScanToken(), false);
     }
 
@@ -264,6 +268,149 @@ class AttendanceWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('QR Code Harian')
             ->assertSee('Staff KONI');
+    }
+
+    public function test_direct_mobile_attendance_bypass_is_not_available(): void
+    {
+        $admin = $this->userWithRole('admin_koni');
+        $session = $this->createSession($admin);
+        $legacyDirectPath = '/absensi/sesi/'.$session->id.'/langsung';
+
+        $this->actingAs($admin)->get($legacyDirectPath)->assertNotFound();
+        $this->actingAs($admin)->post($legacyDirectPath, [
+            'attendance_action' => 'check_in',
+            'selfie_data' => $this->selfieDataUrl(),
+        ])->assertNotFound();
+    }
+
+    public function test_internal_user_sees_eligible_sessions_in_absensi_saya(): void
+    {
+        $admin = $this->userWithRole('admin_koni');
+        $session = $this->createSession($admin, null, 'admin_koni', ['admin_koni']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.absensi.index'))
+            ->assertOk()
+            ->assertSee('Absensi Saya')
+            ->assertSee('Latihan Bersama KONI')
+            ->assertSee('QR Absensi Hari Ini')
+            ->assertSee('Unduh QR ke HP')
+            ->assertSee('Pindai QR dari Galeri')
+            ->assertSee('QR_TOKEN_PLACEHOLDER', false)
+            ->assertSee('attendance-qr-'.$session->id, false)
+            ->assertSee('<svg', false)
+            ->assertDontSee('/absensi/sesi/'.$session->id.'/langsung');
+    }
+
+    public function test_each_internal_role_sees_its_eligible_qr_in_absensi_saya(): void
+    {
+        $admin = $this->userWithRole('admin_koni');
+        $cabor = CabangOlahraga::query()->create(['nama' => 'Cabor QR Mandiri', 'status' => 'aktif']);
+        $roleRoutes = [
+            'admin_koni' => 'admin.absensi.index',
+            'staff_koni' => 'staff.absensi.index',
+            'ketua_koni' => 'admin.absensi.index',
+            'sekretaris_koni' => 'sekretaris.absensi.index',
+            'admin_cabor' => 'cabor.absensi.index',
+            'atlet' => 'atlet.absensi.index',
+            'pelatih' => 'pelatih.absensi.index',
+        ];
+
+        foreach ($roleRoutes as $role => $routeName) {
+            $caborId = $role === 'admin_cabor' ? $cabor->id : null;
+            $participant = $this->userWithRole($role, $caborId);
+            $session = $this->createSession($admin, $caborId, $role, [$role]);
+
+            $this->actingAs($participant)
+                ->get(route($routeName))
+                ->assertOk()
+                ->assertSee('QR Absensi Hari Ini')
+                ->assertSee('Unduh QR ke HP')
+                ->assertSee('Pindai QR dari Galeri')
+                ->assertSee('attendance-qr-'.$session->id, false);
+        }
+    }
+
+    public function test_attendance_qr_pages_schedule_refresh_for_next_local_day(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-11-22 10:00:00', config('app.timezone')));
+
+        try {
+            $admin = $this->userWithRole('admin_koni');
+            $session = $this->createSession($admin);
+
+            $this->actingAs($admin)
+                ->get(route('admin.absensi.index'))
+                ->assertOk()
+                ->assertSee('const untilNextLocalDay = 50400000;', false);
+
+            $this->actingAs($admin)
+                ->get(route('admin.absensi.show', $session))
+                ->assertOk()
+                ->assertSee('const untilNextLocalDay = 50400000;', false);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_admin_cabor_attendance_pages_render_with_assigned_cabor_layout(): void
+    {
+        $admin = $this->userWithRole('admin_koni');
+        $cabor = CabangOlahraga::query()->create([
+            'nama' => 'Cabor Layout Regression',
+            'status' => 'aktif',
+        ]);
+        $manager = $this->userWithRole('admin_cabor', $cabor->id);
+        $session = $this->createSession($admin, $cabor->id, 'admin_cabor', ['admin_cabor']);
+
+        $this->actingAs($manager)
+            ->get(route('cabor.absensi.index'))
+            ->assertOk()
+            ->assertSee('Cabor Layout Regression');
+
+        $this->actingAs($manager)
+            ->get(route('cabor.absensi.create'))
+            ->assertOk()
+            ->assertSee('Cabor Layout Regression');
+
+        $this->actingAs($manager)
+            ->get(route('cabor.absensi.show', $session))
+            ->assertOk()
+            ->assertSee('Cabor Layout Regression');
+    }
+
+    public function test_qr_validation_opens_camera_capture_and_requires_confirmation(): void
+    {
+        $admin = $this->userWithRole('admin_koni');
+        $athlete = $this->userWithRole('atlet');
+        $session = $this->createSession($admin, null, 'atlet', ['atlet']);
+
+        $this->actingAs($athlete)
+            ->get(route('attendance.check-in.show', $session->dailyScanToken()))
+            ->assertOk()
+            ->assertSee('Kamera depan akan dicoba otomatis')
+            ->assertSee('✓ Konfirmasi Check-in')
+            ->assertSee('startCamera();', false)
+            ->assertSee('selfie_data');
+    }
+
+    public function test_manager_can_download_qr_as_svg_with_configured_phone_base_url(): void
+    {
+        config(['app.attendance_base_url' => 'http://192.168.1.20:8000']);
+
+        $admin = $this->userWithRole('admin_koni');
+        $session = $this->createSession($admin);
+
+        $this->actingAs($admin)
+            ->get(route('admin.absensi.show', $session))
+            ->assertOk()
+            ->assertSee('http://192.168.1.20:8000/absensi/scan/'.$session->dailyScanToken(), false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.absensi.qr.download', $session))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/svg+xml; charset=UTF-8')
+            ->assertSee('<svg', false);
     }
 
 }

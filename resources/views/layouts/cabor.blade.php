@@ -1,4 +1,10 @@
 
+@php
+    // Admin Cabor pages may use this layout without explicitly passing $cabor.
+    // Resolve the assigned branch from the authenticated account as a safe fallback.
+    $cabor = $cabor ?? auth()->user()?->cabangOlahraga;
+    $caborName = $cabor?->nama ?? 'Cabang olahraga belum ditautkan';
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -35,7 +41,7 @@
             </div>
 
             <p class="mt-5 rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold text-[#FFD700]">
-                {{ $cabor->nama }}
+                {{ $caborName }}
             </p>
 
         </div>
@@ -171,7 +177,7 @@
                     </p>
 
                     <p class="text-xs text-gray-500">
-                        {{ $cabor->nama }}
+                        {{ $caborName }}
                     </p>
                 </div>
 

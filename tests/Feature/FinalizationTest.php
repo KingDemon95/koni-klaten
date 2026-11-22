@@ -76,7 +76,7 @@ class FinalizationTest extends TestCase
             ->assertHeader('X-Content-Type-Options', 'nosniff')
             ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
             ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
-            ->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+            ->assertHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
     }
 
     public function test_public_mobile_menu_remains_available_until_desktop_navigation_breakpoint(): void

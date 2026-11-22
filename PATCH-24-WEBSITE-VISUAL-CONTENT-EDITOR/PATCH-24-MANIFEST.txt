@@ -1,0 +1,26 @@
+PATCH 24 - WEBSITE VISUAL & CONTENT EDITOR
+Base: koni-klaten-patch23.2-work
+Files: 19
+Database migration: not required
+Frontend build: not required
+
+Modified files:
+app/Models/WebsiteAppearanceSetting.php
+app/Http/Controllers/Admin/WebsiteAppearanceController.php
+app/Providers/AppServiceProvider.php
+routes/web.php
+tests/Feature/WebsiteAppearanceTest.php
+resources/views/admin/website-appearance/edit.blade.php
+resources/views/layouts/public.blade.php
+resources/views/public/home.blade.php
+resources/views/public/partials/managed-heading.blade.php
+resources/views/public/cabor/index.blade.php
+resources/views/public/cabor/show.blade.php
+resources/views/public/struktur/index.blade.php
+resources/views/public/agenda/index.blade.php
+resources/views/public/agenda/show.blade.php
+resources/views/public/statistik/index.blade.php
+resources/views/public/berita/index.blade.php
+resources/views/public/berita/show.blade.php
+resources/views/public/dokumentasi/index.blade.php
+resources/views/public/dokumentasi/show.blade.php

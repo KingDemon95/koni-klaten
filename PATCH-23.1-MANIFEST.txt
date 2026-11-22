@@ -1,0 +1,12 @@
+PATCH 23.1 HOTFIX
+
+Changed files:
+- app/Http/Controllers/Admin/AttendanceSessionController.php
+
+Purpose:
+- Fix eager-load callback type for AttendanceSession::records in Absensi Saya.
+
+Database migrations: none
+Route changes: none
+Frontend build: not required
+Docker rebuild: not required

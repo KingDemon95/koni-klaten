@@ -1,0 +1,7 @@
+PATCH 23.2.2 HOTFIX
+Files: 3
+- resources/views/attendance/index.blade.php
+- resources/views/attendance/show.blade.php
+- tests/Feature/AttendanceWorkflowTest.php
+Scope: Fix negative Carbon diff timeout causing immediate page reload loop.
+Database migrations: none.

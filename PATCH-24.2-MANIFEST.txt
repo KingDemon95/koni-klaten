@@ -1,0 +1,8 @@
+PATCH 24.2 - PUBLIC VIEW COMPOSER FIX
+
+Files:
+- app/Providers/AppServiceProvider.php
+- PATCH-24.2-INSTRUKSI.md
+
+Scope: Fix public Blade view data availability for website appearance preview and published pages.
+No migration or database schema changes.

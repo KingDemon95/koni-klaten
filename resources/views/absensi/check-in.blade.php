@@ -63,7 +63,7 @@
                     @endif
                 </div>
             @else
-                <form id="attendance-form" method="POST" action="{{ route('attendance.check-in.store', request()->route('token')) }}" class="space-y-5 pt-5">
+                <form id="attendance-form" method="POST" action="{{ $formAction }}" class="space-y-5 pt-5">
                     @csrf
                     <input type="hidden" name="attendance_action" value="{{ $attendanceAction }}">
 
@@ -82,7 +82,7 @@
                                 {{ $attendanceAction === 'check_in' ? 'Ambil foto selfie untuk check-in' : 'Ambil foto selfie untuk check-out' }}
                             @endif
                         </h3>
-                        <p class="mt-1 text-xs leading-5 text-gray-500">Aktifkan kamera depan, posisikan wajah di tengah, lalu ambil foto. Sistem hanya menerima foto yang diambil langsung dari kamera pada halaman ini.</p>
+                        <p class="mt-1 text-xs leading-5 text-gray-500">QR absensi sudah tervalidasi. Kamera depan akan dicoba otomatis. Ambil selfie, periksa hasilnya, lalu tekan tombol centang untuk menyimpan kehadiran.</p>
                     </div>
 
                     <div class="overflow-hidden rounded-xl bg-gray-950">
@@ -91,16 +91,21 @@
                         <img id="selfie-preview" alt="Pratinjau selfie" class="hidden aspect-[4/3] w-full object-cover">
                     </div>
                     <input type="hidden" id="selfie-data" name="selfie_data">
-                    <p id="camera-status" class="text-xs text-gray-500" role="status">Tekan tombol Aktifkan Kamera untuk memulai.</p>
+                    <input type="file" id="device-camera-file" accept="image/*" capture="user" class="hidden">
+                    <p id="camera-status" class="text-xs text-gray-500" role="status">Menyiapkan kamera depan...</p>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <button type="button" id="start-camera" class="rounded-lg border border-gray-300 px-4 py-3 text-sm font-bold text-gray-700">Aktifkan Kamera</button>
-                        <button type="button" id="capture-selfie" disabled class="rounded-lg bg-gray-300 px-4 py-3 text-sm font-bold text-gray-500">Ambil Selfie</button>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" id="start-camera" class="rounded-lg border border-gray-300 px-3 py-3 text-xs font-bold text-gray-700">Aktifkan Ulang</button>
+                        <button type="button" id="capture-selfie" disabled class="rounded-lg bg-gray-300 px-3 py-3 text-xs font-bold text-gray-500">Ambil Selfie</button>
+                        <button type="button" id="device-camera-button" class="rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-xs font-bold text-red-700">Kamera HP</button>
                     </div>
 
-                    <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-xs leading-5 text-blue-800">Selfie wajib untuk check-in dan check-out. Akses kamera membutuhkan HTTPS. Pengecualian hanya berlaku untuk alamat localhost.</div>
+                    <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 text-xs leading-5 text-blue-800">Selfie wajib untuk check-in dan check-out. Jika browser tidak mengizinkan kamera otomatis, gunakan tombol Kamera HP. Kamera langsung browser membutuhkan HTTPS atau localhost.</div>
 
-                    <button id="submit-attendance" type="submit" disabled class="w-full rounded-lg bg-[#E60012] px-5 py-3.5 text-sm font-black text-white opacity-50">{{ $attendanceAction === 'check_in' ? 'Kirim Check-in' : 'Kirim Check-out' }}</button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="retake-selfie" class="hidden rounded-lg border border-gray-300 px-4 py-3 text-sm font-bold text-gray-700">Ambil Ulang</button>
+                        <button id="submit-attendance" type="submit" disabled class="col-span-2 w-full rounded-lg bg-[#E60012] px-5 py-3.5 text-sm font-black text-white opacity-50">✓ {{ $attendanceAction === 'check_in' ? 'Konfirmasi Check-in' : 'Konfirmasi Check-out' }}</button>
+                    </div>
                 </form>
             @endif
         </section>
@@ -117,7 +122,10 @@
                 const status = document.getElementById('camera-status');
                 const startButton = document.getElementById('start-camera');
                 const captureButton = document.getElementById('capture-selfie');
+                const deviceCameraButton = document.getElementById('device-camera-button');
+                const deviceCameraInput = document.getElementById('device-camera-file');
                 const submitButton = document.getElementById('submit-attendance');
+                const retakeButton = document.getElementById('retake-selfie');
                 let stream = null;
 
                 const stopCamera = () => {
@@ -127,14 +135,86 @@
                     }
                 };
 
-                startButton.addEventListener('click', async () => {
-                    if (!navigator.mediaDevices?.getUserMedia) {
-                        status.textContent = 'Browser tidak mendukung kamera atau halaman belum menggunakan HTTPS.';
+                const useSelfie = (imageData) => {
+                    selfieInput.value = imageData;
+                    preview.src = imageData;
+                    preview.classList.remove('hidden');
+                    video.classList.add('hidden');
+                    stopCamera();
+                    captureButton.disabled = true;
+                    retakeButton.classList.remove('hidden');
+                    submitButton.classList.remove('col-span-2');
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('opacity-50');
+                    status.textContent = 'Periksa pratinjau selfie. Tekan tombol centang untuk mengonfirmasi absensi.';
+                };
+
+                const convertImageToJpeg = (file) => new Promise((resolve, reject) => {
+                    const objectUrl = URL.createObjectURL(file);
+                    const image = new Image();
+
+                    image.onload = () => {
+                        const scale = Math.min(1, 960 / Math.max(image.naturalWidth, image.naturalHeight));
+                        const width = Math.max(1, Math.round(image.naturalWidth * scale));
+                        const height = Math.max(1, Math.round(image.naturalHeight * scale));
+                        canvas.width = width;
+                        canvas.height = height;
+                        const context = canvas.getContext('2d');
+
+                        if (!context) {
+                            URL.revokeObjectURL(objectUrl);
+                            reject(new Error('Canvas tidak tersedia.'));
+                            return;
+                        }
+
+                        context.drawImage(image, 0, 0, width, height);
+                        const imageData = canvas.toDataURL('image/jpeg', 0.78);
+                        URL.revokeObjectURL(objectUrl);
+                        resolve(imageData);
+                    };
+
+                    image.onerror = () => {
+                        URL.revokeObjectURL(objectUrl);
+                        reject(new Error('Foto tidak dapat dibaca browser.'));
+                    };
+
+                    image.src = objectUrl;
+                });
+
+                deviceCameraButton.addEventListener('click', () => deviceCameraInput.click());
+
+                deviceCameraInput.addEventListener('change', async () => {
+                    const file = deviceCameraInput.files?.[0];
+                    if (!file) return;
+
+                    if (file.type && !file.type.startsWith('image/')) {
+                        status.textContent = 'File harus berupa foto.';
+                        deviceCameraInput.value = '';
                         return;
                     }
 
                     try {
+                        const imageData = await convertImageToJpeg(file);
+                        useSelfie(imageData);
+                        deviceCameraInput.value = '';
+                    } catch (error) {
+                        status.textContent = 'Foto gagal dibaca. Coba ambil selfie kembali menggunakan kamera HP.';
+                    }
+                });
+
+                const startCamera = async () => {
+                    if (!navigator.mediaDevices?.getUserMedia || !window.isSecureContext) {
+                        status.textContent = 'Kamera langsung memerlukan HTTPS atau localhost. Tekan Kamera HP untuk mengambil foto melalui kamera perangkat.';
+                        return false;
+                    }
+
+                    try {
                         stopCamera();
+                        selfieInput.value = '';
+                        submitButton.disabled = true;
+                        submitButton.classList.add('opacity-50');
+                        retakeButton.classList.add('hidden');
+                        submitButton.classList.add('col-span-2');
                         stream = await navigator.mediaDevices.getUserMedia({
                             audio: false,
                             video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } }
@@ -144,12 +224,17 @@
                         preview.classList.add('hidden');
                         await video.play();
                         captureButton.disabled = false;
-                        captureButton.className = 'rounded-lg bg-gray-900 px-4 py-3 text-sm font-bold text-white';
-                        status.textContent = 'Kamera aktif. Pastikan wajah terlihat jelas sebelum mengambil selfie.';
+                        captureButton.className = 'rounded-lg bg-gray-900 px-3 py-3 text-xs font-bold text-white';
+                        status.textContent = 'Kamera aktif. Ambil selfie untuk melanjutkan.';
+                        return true;
                     } catch (error) {
-                        status.textContent = 'Kamera tidak dapat diakses. Izinkan akses kamera dan pastikan halaman menggunakan HTTPS.';
+                        status.textContent = 'Kamera otomatis tidak dapat diakses. Izinkan akses kamera atau gunakan tombol Kamera HP.';
+                        return false;
                     }
-                });
+                };
+
+                startButton.addEventListener('click', startCamera);
+                retakeButton.addEventListener('click', startCamera);
 
                 captureButton.addEventListener('click', () => {
                     if (!stream || !video.videoWidth || !video.videoHeight) {
@@ -163,15 +248,7 @@
                     canvas.height = height;
                     const context = canvas.getContext('2d');
                     context.drawImage(video, 0, 0, width, height);
-                    const imageData = canvas.toDataURL('image/jpeg', 0.78);
-                    selfieInput.value = imageData;
-                    preview.src = imageData;
-                    preview.classList.remove('hidden');
-                    video.classList.add('hidden');
-                    stopCamera();
-                    submitButton.disabled = false;
-                    submitButton.classList.remove('opacity-50');
-                    status.textContent = 'Selfie siap dikirim. Periksa pratinjau sebelum mengirim absensi.';
+                    useSelfie(canvas.toDataURL('image/jpeg', 0.78));
                 });
 
                 document.getElementById('attendance-form').addEventListener('submit', (event) => {
@@ -185,6 +262,11 @@
                 });
 
                 window.addEventListener('pagehide', stopCamera);
+
+                // The QR has already been validated before this page loads. Try to
+                // open the front camera immediately; insecure LAN HTTP falls back
+                // to the explicit native camera button.
+                startCamera();
             })();
         </script>
     @endif

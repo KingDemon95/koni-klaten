@@ -48,13 +48,23 @@
             </dl>
         </section>
 
-        <aside class="rounded-2xl border border-gray-200 bg-white p-5 text-center shadow-sm">
+        <aside id="attendance-qr-print" class="rounded-2xl border border-gray-200 bg-white p-5 text-center shadow-sm">
             <h3 class="font-black">QR Code Harian</h3>
             <p class="mt-1 text-xs text-gray-500">QR berubah setiap hari dan hanya berlaku pada tanggal yang tampil. Halaman ini akan memuat ulang QR setelah pergantian hari.</p>
-            <div class="mx-auto my-4 max-w-[240px] rounded-xl border border-gray-100 bg-white p-3">{!! $qrSvg !!}</div>
+            <div id="attendance-qr-svg" class="mx-auto my-4 max-w-[240px] rounded-xl border border-gray-100 bg-white p-3">{!! $qrSvg !!}</div>
             <p class="break-all rounded-lg bg-gray-50 p-3 text-[11px] text-gray-600">{{ $scanUrl }}</p>
-            <button type="button" id="copy-attendance-url" class="mt-3 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-xs font-bold text-gray-700" data-url="{{ $scanUrl }}">Salin tautan absensi</button>
-            <p id="copy-feedback" class="mt-2 text-xs text-green-700" aria-live="polite"></p>
+            <div class="no-print mt-3 space-y-2">
+                <button type="button" id="copy-attendance-url" class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-xs font-bold text-gray-700" data-url="{{ $scanUrl }}">Salin tautan absensi</button>
+                @if($attendanceSession->status === 'open' && $attendanceSession->ends_at->isFuture())
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="{{ route($routePrefix.'.absensi.qr.download', $attendanceSession) }}" class="rounded-lg bg-gray-900 px-3 py-2.5 text-xs font-bold text-white hover:bg-gray-700">Unduh SVG</a>
+                        <button type="button" id="download-qr-png" data-filename="qr-absensi-{{ \Illuminate\Support\Str::slug($attendanceSession->title) }}-{{ now()->format('Ymd') }}.png" class="rounded-lg bg-[#E60012] px-3 py-2.5 text-xs font-bold text-white hover:bg-red-700">Unduh PNG</button>
+                    </div>
+                    <button type="button" id="print-attendance-qr" class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-xs font-bold text-gray-700">Cetak QR</button>
+                @endif
+                <p id="copy-feedback" class="text-xs text-green-700" aria-live="polite"></p>
+            </div>
+            <p class="mt-3 text-xs leading-5 text-gray-500">QR sesi juga otomatis tampil pada halaman Absensi Saya milik peserta yang memenuhi role dan cabor. Peserta dapat mengunduh QR dari HP, lalu memilih gambar QR tersebut dari galeri untuk memindainya pada perangkat yang sama. Setelah token valid, sistem membuka kamera selfie.</p>
             @if($attendanceSession->status !== 'open' || $attendanceSession->ends_at->isPast())
                 <p class="mt-3 text-xs font-semibold text-red-600">Sesi sudah ditutup atau berakhir. QR tidak dapat digunakan.</p>
             @elseif(now()->lt($attendanceSession->starts_at))
@@ -111,8 +121,86 @@
     });
 </script>
 <script>
+    document.getElementById('print-attendance-qr')?.addEventListener('click', () => window.print());
+
+    document.getElementById('download-qr-png')?.addEventListener('click', (event) => {
+        const button = event.currentTarget;
+        const svgElement = document.querySelector('#attendance-qr-svg svg');
+        const feedback = document.getElementById('copy-feedback');
+
+        if (!svgElement) {
+            feedback.textContent = 'QR tidak dapat dibaca untuk diunduh.';
+            return;
+        }
+
+        const svgMarkup = new XMLSerializer().serializeToString(svgElement);
+        const svgBlob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
+        const svgUrl = URL.createObjectURL(svgBlob);
+        const image = new Image();
+
+        image.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 960;
+            canvas.height = 960;
+            const context = canvas.getContext('2d');
+
+            if (!context) {
+                URL.revokeObjectURL(svgUrl);
+                feedback.textContent = 'Browser tidak dapat menyiapkan gambar PNG.';
+                return;
+            }
+
+            context.fillStyle = '#ffffff';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(svgUrl);
+
+            canvas.toBlob((pngBlob) => {
+                if (!pngBlob) {
+                    feedback.textContent = 'Gambar PNG gagal dibuat. Gunakan tombol Unduh SVG.';
+                    return;
+                }
+
+                const pngUrl = URL.createObjectURL(pngBlob);
+                const link = document.createElement('a');
+                link.href = pngUrl;
+                link.download = button.dataset.filename || 'qr-absensi.png';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.setTimeout(() => URL.revokeObjectURL(pngUrl), 1000);
+                feedback.textContent = 'QR PNG berhasil disiapkan.';
+            }, 'image/png');
+        };
+
+        image.onerror = () => {
+            URL.revokeObjectURL(svgUrl);
+            feedback.textContent = 'Gambar PNG gagal dibuat. Gunakan tombol Unduh SVG.';
+        };
+
+        image.src = svgUrl;
+    });
+</script>
+<style>
+    @media print {
+        @page { margin: 12mm; }
+        body * { visibility: hidden !important; }
+        #attendance-qr-print,
+        #attendance-qr-print * { visibility: visible !important; }
+        #attendance-qr-print {
+            position: absolute !important;
+            inset: 0 auto auto 0 !important;
+            width: 100% !important;
+            max-width: none !important;
+            border: 0 !important;
+            box-shadow: none !important;
+        }
+        #attendance-qr-print .no-print { display: none !important; }
+    }
+</style>
+<script>
     (() => {
-        const untilNextLocalDay = {{ now()->endOfDay()->addSecond()->diffInMilliseconds(now()) }};
+        const untilNextLocalDay = {{ max(1000, (int) now()->diffInMilliseconds(now()->addDay()->startOfDay())) }};
         window.setTimeout(() => window.location.reload(), untilNextLocalDay);
     })();
 </script>

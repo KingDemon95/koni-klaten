@@ -1,0 +1,20 @@
+PATCH 23 - QR Download dan Absensi Mandiri Mobile
+
+Files:
+- .env.example
+- compose.yaml
+- config/app.php
+- app/Http/Controllers/Admin/AttendanceSessionController.php
+- app/Http/Controllers/Attendance/AttendanceCheckInController.php
+- routes/web.php
+- resources/views/attendance/index.blade.php
+- resources/views/attendance/show.blade.php
+- resources/views/absensi/check-in.blade.php
+- resources/views/layouts/atlet.blade.php
+- resources/views/layouts/pelatih.blade.php
+- tests/Feature/AttendanceWorkflowTest.php
+- PATCH-23-INSTRUKSI.md
+
+Database migrations: none
+Frontend build: not required
+Docker rebuild: not required

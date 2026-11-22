@@ -29,6 +29,15 @@ class AttendanceCheckInController extends Controller
 
     public function show(Request $request, string $token): View
     {
+        return $this->renderCheckInPage(
+            $request,
+            $token,
+            route('attendance.check-in.store', $token),
+        );
+    }
+
+    private function renderCheckInPage(Request $request, string $token, string $formAction): View
+    {
         $session = $this->resolveSession($token);
         $this->authorizeParticipant($request, $session);
 
@@ -51,21 +60,31 @@ class AttendanceCheckInController extends Controller
             'existingRecord' => $existingRecord,
             'attendanceAction' => $attendanceAction,
             'canRecord' => $canRecord,
+            'formAction' => $formAction,
         ]);
     }
 
     public function store(Request $request, string $token): RedirectResponse
+    {
+        return $this->storeForToken(
+            $request,
+            $token,
+            route('attendance.check-in.show', $token),
+        );
+    }
+
+    private function storeForToken(Request $request, string $token, string $returnUrl): RedirectResponse
     {
         $session = $this->resolveSession($token);
         $user = $request->user();
         $this->authorizeParticipant($request, $session);
 
         if ($session->status !== 'open') {
-            return back()->with('error', 'Sesi absensi sudah ditutup.');
+            return redirect()->to($returnUrl)->with('error', 'Sesi absensi sudah ditutup.');
         }
 
         if (! $session->isWithinSchedule()) {
-            return back()->with('error', 'Absensi hanya dapat dilakukan selama jadwal kegiatan.');
+            return redirect()->to($returnUrl)->with('error', 'Absensi hanya dapat dilakukan selama jadwal kegiatan.');
         }
 
         if (! $request->has('attendance_action')) {
@@ -82,24 +101,24 @@ class AttendanceCheckInController extends Controller
             ->first();
 
         if ($validated['attendance_action'] === 'check_in' && $existingRecord) {
-            return redirect()->route('attendance.check-in.show', $token)
+            return redirect()->to($returnUrl)
                 ->with('error', 'Check-in untuk sesi ini sudah tercatat.');
         }
 
         if ($validated['attendance_action'] === 'check_out') {
             if (! $existingRecord) {
-                return redirect()->route('attendance.check-in.show', $token)
+                return redirect()->to($returnUrl)
                     ->with('error', 'Lakukan check-in terlebih dahulu sebelum check-out.');
             }
 
             if ($existingRecord->checked_out_at) {
-                return redirect()->route('attendance.check-in.show', $token)
+                return redirect()->to($returnUrl)
                     ->with('error', 'Check-out untuk sesi ini sudah tercatat.');
             }
         }
 
         $imageBytes = $this->decodeSelfie($validated['selfie_data']);
-        abort_if($imageBytes === null, 422, 'Selfie harus berasal dari kamera dan menggunakan format JPEG yang valid.');
+        abort_if($imageBytes === null, 422, 'Selfie harus berupa gambar JPEG yang valid.');
 
         $imageInfo = @getimagesizefromstring($imageBytes);
         abort_unless(
@@ -161,7 +180,7 @@ class AttendanceCheckInController extends Controller
             Storage::disk('local')->delete($path);
 
             if ($session->records()->where('user_id', $user->id)->exists()) {
-                return redirect()->route('attendance.check-in.show', $token)
+                return redirect()->to($returnUrl)
                     ->with('error', 'Status absensi sudah berubah. Muat ulang halaman untuk melanjutkan.');
             }
 
@@ -169,7 +188,7 @@ class AttendanceCheckInController extends Controller
         } catch (LogicException $exception) {
             Storage::disk('local')->delete($path);
 
-            return redirect()->route('attendance.check-in.show', $token)
+            return redirect()->to($returnUrl)
                 ->with('error', $exception->getMessage());
         } catch (\Throwable $exception) {
             Storage::disk('local')->delete($path);
@@ -180,7 +199,7 @@ class AttendanceCheckInController extends Controller
             ? 'Check-in berhasil dicatat. Jangan lupa melakukan check-out setelah kegiatan selesai.'
             : 'Check-out berhasil dicatat. Terima kasih sudah mengikuti kegiatan.';
 
-        return redirect()->route('attendance.check-in.show', $token)->with('success', $message);
+        return redirect()->to($returnUrl)->with('success', $message);
     }
 
     private function resolveSession(string $token): AttendanceSession

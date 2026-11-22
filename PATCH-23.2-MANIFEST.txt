@@ -1,0 +1,26 @@
+PATCH 23.2 - QR wajib dari galeri dan konfirmasi selfie
+
+Files:
+- app/Http/Controllers/Admin/AttendanceSessionController.php
+- app/Http/Middleware/SecurityHeaders.php
+- app/Http/Controllers/Attendance/AttendanceCheckInController.php
+- routes/web.php
+- resources/views/attendance/index.blade.php
+- resources/views/attendance/show.blade.php
+- resources/views/absensi/check-in.blade.php
+- tests/Feature/AttendanceWorkflowTest.php
+- tests/Feature/FinalizationTest.php
+- PATCH-23.2-INSTRUKSI.md
+- PATCH-23.2-MANIFEST.txt
+
+Behavior:
+- QR harian tampil pada Absensi Saya untuk semua role internal yang memenuhi target role dan cabor.
+- QR dapat diunduh sebagai PNG.
+- Gambar QR dapat dipilih dari galeri HP dan didekode di browser.
+- Jalur absensi tanpa QR dihapus.
+- Kamera depan dicoba otomatis setelah QR tervalidasi.
+- Selfie harus dikonfirmasi sebelum absensi tersimpan.
+
+Database migrations: none
+Frontend build: not required
+Docker rebuild: not required

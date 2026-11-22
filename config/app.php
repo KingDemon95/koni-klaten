@@ -54,6 +54,10 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Optional external base URL for QR links shared from a laptop to phones
+    // on the same local network. Leave empty to use the current request host.
+    'attendance_base_url' => env('ATTENDANCE_BASE_URL'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

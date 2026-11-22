@@ -254,6 +254,7 @@ Route::middleware(['auth', 'role:admin_koni|ketua_koni'])
     // Ketua dapat membaca rekap, sedangkan aksi pengelolaan dibatasi pada Admin KONI.
     Route::get('absensi', [AttendanceSessionController::class, 'index'])->name('absensi.index');
     Route::get('absensi/{attendanceSession}/export', [AttendanceSessionController::class, 'export'])->whereNumber('attendanceSession')->name('absensi.export');
+    Route::get('absensi/{attendanceSession}/qr/download', [AttendanceSessionController::class, 'downloadQr'])->whereNumber('attendanceSession')->name('absensi.qr.download');
     Route::get('absensi/record/{attendanceRecord}/selfie', [AttendanceSessionController::class, 'selfie'])->whereNumber('attendanceRecord')->name('absensi.selfie');
     Route::get('absensi/{attendanceSession}', [AttendanceSessionController::class, 'show'])->whereNumber('attendanceSession')->name('absensi.show');
 
@@ -281,7 +282,7 @@ Route::middleware(['auth', 'role:admin_koni'])
     Route::put('/tampilan-website', [\App\Http\Controllers\Admin\WebsiteAppearanceController::class, 'update'])->name('website-appearance.update');
     Route::post('/tampilan-website/publish', [\App\Http\Controllers\Admin\WebsiteAppearanceController::class, 'publish'])->name('website-appearance.publish');
     Route::get('/tampilan-website/preview/{page}', [\App\Http\Controllers\Admin\WebsiteAppearanceController::class, 'preview'])
-        ->whereIn('page', ['home', 'cabor', 'struktur', 'agenda', 'statistik', 'berita', 'dokumentasi'])
+        ->whereIn('page', ['home', 'cabor', 'cabor_detail', 'struktur', 'agenda', 'agenda_detail', 'statistik', 'berita', 'berita_detail', 'dokumentasi', 'dokumentasi_detail'])
         ->name('website-appearance.preview');
 
     Route::get('/absensi/create', [AttendanceSessionController::class, 'create'])->name('absensi.create');
@@ -318,6 +319,7 @@ Route::middleware(['auth', 'role:sekretaris_koni'])
 
     Route::get('absensi', [AttendanceSessionController::class, 'index'])->name('absensi.index');
     Route::get('absensi/{attendanceSession}/export', [AttendanceSessionController::class, 'export'])->whereNumber('attendanceSession')->name('absensi.export');
+    Route::get('absensi/{attendanceSession}/qr/download', [AttendanceSessionController::class, 'downloadQr'])->whereNumber('attendanceSession')->name('absensi.qr.download');
     Route::get('absensi/record/{attendanceRecord}/selfie', [AttendanceSessionController::class, 'selfie'])->whereNumber('attendanceRecord')->name('absensi.selfie');
     Route::get('absensi/{attendanceSession}', [AttendanceSessionController::class, 'show'])->whereNumber('attendanceSession')->name('absensi.show');
 
@@ -396,6 +398,7 @@ Route::middleware([
     Route::get('absensi/create', [AttendanceSessionController::class, 'create'])->name('absensi.create');
     Route::post('absensi', [AttendanceSessionController::class, 'store'])->name('absensi.store');
     Route::get('absensi/{attendanceSession}/export', [AttendanceSessionController::class, 'export'])->whereNumber('attendanceSession')->name('absensi.export');
+    Route::get('absensi/{attendanceSession}/qr/download', [AttendanceSessionController::class, 'downloadQr'])->whereNumber('attendanceSession')->name('absensi.qr.download');
     Route::post('absensi/{attendanceSession}/tutup', [AttendanceSessionController::class, 'close'])->whereNumber('attendanceSession')->name('absensi.close');
     Route::get('absensi/record/{attendanceRecord}/selfie', [AttendanceSessionController::class, 'selfie'])->whereNumber('attendanceRecord')->name('absensi.selfie');
     Route::get('absensi/{attendanceSession}', [AttendanceSessionController::class, 'show'])->whereNumber('attendanceSession')->name('absensi.show');
@@ -464,6 +467,7 @@ Route::middleware([
     Route::get('absensi/create', [AttendanceSessionController::class, 'create'])->name('absensi.create');
     Route::post('absensi', [AttendanceSessionController::class, 'store'])->name('absensi.store');
     Route::get('absensi/{attendanceSession}/export', [AttendanceSessionController::class, 'export'])->whereNumber('attendanceSession')->name('absensi.export');
+    Route::get('absensi/{attendanceSession}/qr/download', [AttendanceSessionController::class, 'downloadQr'])->whereNumber('attendanceSession')->name('absensi.qr.download');
     Route::post('absensi/{attendanceSession}/tutup', [AttendanceSessionController::class, 'close'])->whereNumber('attendanceSession')->name('absensi.close');
     Route::get('absensi/record/{attendanceRecord}/selfie', [AttendanceSessionController::class, 'selfie'])->whereNumber('attendanceRecord')->name('absensi.selfie');
     Route::get('absensi/{attendanceSession}', [AttendanceSessionController::class, 'show'])->whereNumber('attendanceSession')->name('absensi.show');

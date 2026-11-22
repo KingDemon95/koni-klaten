@@ -8,7 +8,7 @@ use App\Models\AttendanceSession;
 use App\Models\CabangOlahraga;
 use App\Models\User;
 use App\Support\QrCode\QrCodeSvg;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -49,6 +49,26 @@ class AttendanceSessionController extends Controller
             ->with('cabangOlahraga')
             ->withCount('records')
             ->latest('starts_at');
+
+        // Every eligible internal user sees the QR for each session they may attend.
+        // The QR token remains signed and date-bound; the server still validates
+        // role, cabor, session status, and schedule after the scan.
+        $mySessions = AttendanceSession::query()
+            ->with('cabangOlahraga')
+            ->with(['records' => fn (HasMany $query) => $query->where('user_id', $user->id)])
+            ->where('status', 'open')
+            ->where('ends_at', '>=', now())
+            ->latest('starts_at')
+            ->limit(100)
+            ->get()
+            ->filter(fn (AttendanceSession $session): bool => $this->userCanJoinSession($user, $session))
+            ->values();
+
+        $mySessions->each(function (AttendanceSession $session): void {
+            $scanUrl = $this->scanUrlFor($session);
+            $session->setAttribute('scan_url', $scanUrl);
+            $session->setAttribute('qr_svg', QrCodeSvg::render($scanUrl));
+        });
 
         if ($user->hasRole('admin_cabor')) {
             $sessionQuery->where('cabang_olahraga_id', $user->cabang_olahraga_id);
@@ -118,6 +138,7 @@ class AttendanceSessionController extends Controller
 
         return view('attendance.index', compact(
             'sessions',
+            'mySessions',
             'records',
             'summaryByRole',
             'summaryByCabor',
@@ -223,7 +244,7 @@ class AttendanceSessionController extends Controller
         }
 
         $records = $recordsQuery->paginate(25)->withQueryString();
-        $scanUrl = route('attendance.check-in.show', $attendanceSession->dailyScanToken());
+        $scanUrl = $this->scanUrlFor($attendanceSession);
         $qrSvg = QrCodeSvg::render($scanUrl);
 
         return view('attendance.show', [
@@ -235,6 +256,26 @@ class AttendanceSessionController extends Controller
             'layout' => $this->layoutFor($user),
             'canManage' => $this->canManageSession($user, $attendanceSession),
             'canViewSelfies' => $user->hasAnyRole(['admin_koni', 'staff_koni', 'admin_cabor']),
+        ]);
+    }
+
+    public function downloadQr(Request $request, AttendanceSession $attendanceSession)
+    {
+        $this->authorizeSessionView($request->user(), $attendanceSession);
+
+        abort_unless(
+            $attendanceSession->status === 'open' && $attendanceSession->ends_at->isFuture(),
+            404,
+            'QR tidak tersedia karena sesi sudah ditutup atau berakhir.',
+        );
+
+        $qrSvg = QrCodeSvg::render($this->scanUrlFor($attendanceSession));
+        $filename = 'qr-absensi-'.Str::slug($attendanceSession->title).'-'.now()->format('Ymd').'.svg';
+
+        return response($qrSvg, 200, [
+            'Content-Type' => 'image/svg+xml; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Cache-Control' => 'private, no-store',
         ]);
     }
 
@@ -382,7 +423,16 @@ class AttendanceSessionController extends Controller
 
     private function participantCanJoin(User $user, AttendanceSession $session): bool
     {
-        if ($session->status !== 'open' || ! $session->isWithinSchedule()) {
+        return $this->userCanJoinSession($user, $session, true);
+    }
+
+    private function userCanJoinSession(User $user, AttendanceSession $session, bool $requireCurrentWindow = false): bool
+    {
+        if (
+            $session->status !== 'open'
+            || $session->ends_at->isPast()
+            || ($requireCurrentWindow && ! $session->isWithinSchedule())
+        ) {
             return false;
         }
 
@@ -406,6 +456,15 @@ class AttendanceSessionController extends Controller
         }
 
         if ($session->cabang_olahraga_id) {
+            if ($user->hasRole('admin_cabor')) {
+                return $user->cabang_olahraga_id !== null
+                    && (int) $user->cabang_olahraga_id === (int) $session->cabang_olahraga_id;
+            }
+
+            if ($user->hasAnyRole(['admin_koni', 'staff_koni', 'ketua_koni', 'sekretaris_koni'])) {
+                return true;
+            }
+
             $user->loadMissing(['atlet', 'pelatih']);
             $caborIds = collect([
                 $user->cabang_olahraga_id,
@@ -417,6 +476,16 @@ class AttendanceSessionController extends Controller
         }
 
         return true;
+    }
+
+    private function scanUrlFor(AttendanceSession $session): string
+    {
+        $relativeUrl = route('attendance.check-in.show', $session->dailyScanToken(), false);
+        $baseUrl = trim((string) config('app.attendance_base_url'));
+
+        return $baseUrl !== ''
+            ? rtrim($baseUrl, '/').'/'.ltrim($relativeUrl, '/')
+            : route('attendance.check-in.show', $session->dailyScanToken());
     }
 
     private function routePrefix(User $user): string
