@@ -60,6 +60,7 @@ class WebsiteAppearanceController extends Controller
         $sectionDefinitions = WebsiteAppearanceSetting::sectionDefinitions($pageKey);
         $rules = [
             'page_key' => ['required', Rule::in(array_keys($pageDefinitions))],
+            'intent' => ['nullable', Rule::in(['save', 'preview', 'publish'])],
             'primary_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/D'],
             'secondary_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/D'],
             'header_background' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/D'],
@@ -179,6 +180,19 @@ class WebsiteAppearanceController extends Controller
             ),
         );
 
+        $intent = $validated['intent'] ?? 'save';
+
+        if ($intent === 'preview') {
+            return redirect()->route('admin.website-appearance.preview', $pageKey);
+        }
+
+        if ($intent === 'publish') {
+            $this->publishDraft($setting, $request);
+
+            return redirect()->route('admin.website-appearance.edit', ['page' => $pageKey])
+                ->with('success', 'Perubahan halaman '.$pageDefinitions[$pageKey].' berhasil disimpan dan dipublikasikan ke website publik.');
+        }
+
         return redirect()->route('admin.website-appearance.edit', ['page' => $pageKey])
             ->with('success', 'Draft halaman '.$pageDefinitions[$pageKey].' berhasil disimpan. Website publik belum berubah sampai Anda memublikasikannya.');
     }
@@ -186,22 +200,7 @@ class WebsiteAppearanceController extends Controller
     public function publish(Request $request): RedirectResponse
     {
         $setting = WebsiteAppearanceSetting::current();
-        $oldPublished = $setting->published_config ?? WebsiteAppearanceSetting::defaultConfig();
-        $newPublished = array_replace_recursive(
-            WebsiteAppearanceSetting::defaultConfig(),
-            $setting->draft_config ?? [],
-        );
-
-        $setting->update([
-            'published_config' => $newPublished,
-            'published_at' => now(),
-            'updated_by' => $request->user()->id,
-        ]);
-
-        $this->deleteUnreferencedPaths(
-            $this->pathsInConfig($oldPublished),
-            $this->pathsInConfig($newPublished),
-        );
+        $this->publishDraft($setting, $request);
 
         $pageKey = (string) $request->input('page_key', 'home');
         if (! array_key_exists($pageKey, WebsiteAppearanceSetting::pageDefinitions())) {
@@ -241,6 +240,26 @@ class WebsiteAppearanceController extends Controller
         abort_unless(array_key_exists($page, $routes), 404);
 
         return redirect()->to($routes[$page]().'?appearance_preview=1');
+    }
+
+    private function publishDraft(WebsiteAppearanceSetting $setting, Request $request): void
+    {
+        $oldPublished = $setting->published_config ?? WebsiteAppearanceSetting::defaultConfig();
+        $newPublished = array_replace_recursive(
+            WebsiteAppearanceSetting::defaultConfig(),
+            $setting->draft_config ?? [],
+        );
+
+        $setting->update([
+            'published_config' => $newPublished,
+            'published_at' => now(),
+            'updated_by' => $request->user()->id,
+        ]);
+
+        $this->deleteUnreferencedPaths(
+            $this->pathsInConfig($oldPublished),
+            $this->pathsInConfig($newPublished),
+        );
     }
 
     private function pathsInConfig(array $config): array

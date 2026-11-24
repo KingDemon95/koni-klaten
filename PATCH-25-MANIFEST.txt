@@ -1,0 +1,11 @@
+PATCH-25-WEBSITE-APPEARANCE-FIX
+Files:
+- app/Http/Controllers/Admin/WebsiteAppearanceController.php
+- app/Providers/AppServiceProvider.php
+- resources/views/admin/website-appearance/edit.blade.php
+- resources/views/layouts/public.blade.php
+- tests/Feature/WebsiteAppearanceTest.php
+- PATCH-25-INSTRUKSI.md
+
+No database migration.
+No volume/database deletion.

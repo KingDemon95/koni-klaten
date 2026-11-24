@@ -10,7 +10,26 @@
         .public-site {
             display: flex;
             flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+            min-width: 0;
             font-family: var(--website-font-family, Figtree, ui-sans-serif, system-ui, sans-serif);
+        }
+        /*
+         * Public sections are flex items. Without an explicit width, sections
+         * that also use mx-auto can shrink to their max-content width instead
+         * of filling the page. Keep each section full-width while preserving
+         * any max-w-* constraint declared by its own markup.
+         */
+        .public-site > .website-managed-section {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+        .public-site > .website-section-grid {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
         }
         .public-site .website-section-stack {
             display: flex;
@@ -27,19 +46,27 @@
             order: var(--website-section-order, 0);
         }
         .public-site .public-page-hero {
+            position: relative;
+            width: 100%;
+            min-width: 0;
             background-color: var(--website-page-hero-background, #17191F);
             background-image:
                 linear-gradient(115deg, rgba(23, 25, 31, var(--website-page-overlay-alpha, .62)), rgba(23, 25, 31, var(--website-page-overlay-alpha, .62))),
                 var(--website-page-backdrop, none);
             background-position: center, var(--website-page-position, center);
-            background-size: cover;
-            background-repeat: no-repeat;
+            background-size: cover, cover;
+            background-repeat: no-repeat, no-repeat;
         }
         @supports (background-image: linear-gradient(90deg, color-mix(in srgb, red 50%, transparent), transparent)) {
             .public-site .public-page-hero {
                 background-image:
-                    linear-gradient(115deg, color-mix(in srgb, var(--website-page-hero-background, #17191F) var(--website-page-overlay, 62%), transparent), color-mix(in srgb, var(--website-page-hero-background, #17191F) var(--website-page-overlay, 62%), transparent)),
+                    linear-gradient(
+                        115deg,
+                        color-mix(in srgb, var(--website-page-hero-background, #17191F) var(--website-page-overlay, 62%), transparent),
+                        color-mix(in srgb, var(--website-page-hero-background, #17191F) var(--website-page-overlay, 62%), transparent)
+                    ),
                     var(--website-page-backdrop, none);
+                background-size: cover, cover;
             }
         }
         .public-site .website-hero-title { color: var(--website-page-title-color, #FFFFFF) !important; }
@@ -133,6 +160,9 @@
         id="konten-utama"
         tabindex="-1"
         class="public-site"
+        data-website-page="{{ $websitePageKey ?? 'home' }}"
+        data-website-mode="{{ ($websiteAppearancePreview ?? false) ? 'draft-preview' : 'published' }}"
+        data-website-backdrop="{{ $websitePageBackdropUrl ?? '' }}"
         style="
             --website-primary: {{ $websiteAppearance['primary_color'] ?? '#D71920' }};
             --website-secondary: {{ $websiteAppearance['secondary_color'] ?? '#17191F' }};

@@ -110,8 +110,11 @@ class AppServiceProvider extends ServiceProvider
                     'websitePageKey' => $pageKey,
                     'websitePageAppearance' => $pageAppearance,
                     'websitePageSections' => $pageAppearance['sections'] ?? [],
+                    // Keep the banner URL host-relative. This lets the same
+                    // saved image work on localhost, a LAN address, or a tunnel
+                    // even when APP_URL still contains a different host.
                     'websitePageBackdropUrl' => ! empty($pageAppearance['backdrop_path'])
-                        ? asset('storage/'.$pageAppearance['backdrop_path'])
+                        ? '/storage/'.ltrim((string) $pageAppearance['backdrop_path'], '/')
                         : null,
                     'websiteFontFamily' => $fontFamily,
                     'websiteAppearancePreview' => (bool) $isPreview,

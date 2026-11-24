@@ -129,6 +129,75 @@ class WebsiteAppearanceTest extends TestCase
             ->assertSee('#123456');
     }
 
+    public function test_preview_action_saves_the_latest_form_values_before_opening_public_preview(): void
+    {
+        $admin = $this->userWithRole('admin_koni');
+        $payload = $this->appearancePayload('cabor');
+        $payload['intent'] = 'preview';
+        $payload['hero_background_color'] = '#123456';
+        $payload['title_color'] = '#F0F0F0';
+        $payload['sections']['hero']['title'] = 'Preview Cabang Olahraga Terbaru';
+        $payload['backdrop'] = UploadedFile::fake()->image('cabor-banner.jpg', 1200, 500);
+
+        $this->actingAs($admin)->put(route('admin.website-appearance.update'), $payload)
+            ->assertRedirect(route('admin.website-appearance.preview', 'cabor'));
+
+        $setting = WebsiteAppearanceSetting::query()->firstOrFail();
+        $draftPage = $setting->draft_config['pages']['cabor'];
+        $this->assertSame('#123456', $draftPage['hero_background_color']);
+        $this->assertSame('#F0F0F0', $draftPage['title_color']);
+        $this->assertSame('Preview Cabang Olahraga Terbaru', $draftPage['sections']['hero']['title']);
+        $this->assertNotNull($draftPage['backdrop_path']);
+        $this->assertNull($setting->published_config['pages']['cabor']['backdrop_path']);
+
+        $this->actingAs($admin)->get(route('public.cabor.index').'?appearance_preview=1')
+            ->assertOk()
+            ->assertSee('data-website-page="cabor"', false)
+            ->assertSee('data-website-mode="draft-preview"', false)
+            ->assertSee('#123456')
+            ->assertSee('Preview Cabang Olahraga Terbaru')
+            ->assertSee('/storage/'.$draftPage['backdrop_path']);
+    }
+
+    public function test_publish_action_saves_latest_form_values_and_publishes_them_in_one_submission(): void
+    {
+        $admin = $this->userWithRole('admin_koni');
+        $payload = $this->appearancePayload('cabor');
+        $payload['intent'] = 'publish';
+        $payload['hero_background_color'] = '#345678';
+        $payload['accent_color'] = '#008866';
+        $payload['sections']['hero']['title'] = 'Cabang Olahraga Resmi KONI Klaten';
+        $payload['backdrop'] = UploadedFile::fake()->image('published-cabor-banner.jpg', 1200, 500);
+
+        $this->actingAs($admin)->put(route('admin.website-appearance.update'), $payload)
+            ->assertRedirect(route('admin.website-appearance.edit', ['page' => 'cabor']));
+
+        $setting = WebsiteAppearanceSetting::query()->firstOrFail();
+        $publishedPage = $setting->published_config['pages']['cabor'];
+        $this->assertSame('#345678', $publishedPage['hero_background_color']);
+        $this->assertSame('#008866', $publishedPage['accent_color']);
+        $this->assertSame('Cabang Olahraga Resmi KONI Klaten', $publishedPage['sections']['hero']['title']);
+        $this->assertNotNull($publishedPage['backdrop_path']);
+        $this->assertNotNull($setting->published_at);
+
+        $this->get(route('public.cabor.index'))
+            ->assertOk()
+            ->assertSee('data-website-page="cabor"', false)
+            ->assertSee('data-website-mode="published"', false)
+            ->assertSee('#345678')
+            ->assertSee('Cabang Olahraga Resmi KONI Klaten')
+            ->assertSee('/storage/'.$publishedPage['backdrop_path']);
+    }
+
+    public function test_public_layout_keeps_managed_sections_full_width(): void
+    {
+        $this->get(route('public.home'))
+            ->assertOk()
+            ->assertSee('.public-site > .website-managed-section', false)
+            ->assertSee('width: 100%', false)
+            ->assertSee('background-size: cover, cover', false);
+    }
+
     public function test_detail_page_preview_uses_a_real_public_record_when_available(): void
     {
         $admin = $this->userWithRole('admin_koni');
