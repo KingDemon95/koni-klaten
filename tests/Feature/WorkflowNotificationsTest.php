@@ -171,6 +171,8 @@ class WorkflowNotificationsTest extends TestCase
         $adminCabor = $this->adminCabor($cabor);
         $staff = $this->user('staff_koni');
         $adminKoni = $this->user('admin_koni');
+        $ketua = $this->user('ketua_koni');
+        $sekretaris = $this->user('sekretaris_koni');
 
         $this->actingAs($adminCabor)->post(route('cabor.surat.store'), [
             'perihal' => 'Permohonan dukungan notifikasi',
@@ -187,9 +189,11 @@ class WorkflowNotificationsTest extends TestCase
         $this->actingAs($staff)->post(route('staff.surat.teruskan', $surat), [
             'catatan_staff' => 'Sudah diperiksa.',
         ])->assertRedirect();
-        $this->assertSame(1, $adminKoni->unreadNotifications()->count());
+        $this->assertSame(0, $adminKoni->unreadNotifications()->count());
+        $this->assertSame(1, $ketua->unreadNotifications()->count());
+        $this->assertSame(1, $sekretaris->unreadNotifications()->count());
 
-        $this->actingAs($adminKoni)->post(route('admin.persuratan.keputusan', $surat), [
+        $this->actingAs($ketua)->post(route('admin.persuratan.keputusan', $surat), [
             'keputusan_admin' => 'diterima',
             'catatan_admin' => 'Disetujui.',
         ])->assertRedirect();

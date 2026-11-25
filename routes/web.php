@@ -100,6 +100,7 @@ Route::middleware('auth')->group(function () {
         ->name('account.password.update');
 
     Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/pesan', [\App\Http\Controllers\SuratMessageController::class, 'index'])->name('messages.index');
     Route::post('/notifikasi/baca-semua', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
     Route::post('/notifikasi/{notification}/buka', [NotificationController::class, 'open'])->name('notifications.open');
 
@@ -228,12 +229,16 @@ Route::middleware(['auth', 'role:admin_koni|ketua_koni'])
     Route::get('persuratan/{surat}', [SuratController::class, 'show'])->name('persuratan.show');
     Route::post('persuratan/{surat}/keputusan', [SuratController::class, 'decide'])->name('persuratan.keputusan');
     Route::get('persuratan/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('persuratan.file');
+    Route::get('persuratan/{surat}/pesan/{message}/file', [SuratController::class, 'downloadMessageAttachment'])
+        ->whereNumber('message')->name('persuratan.pesan.file');
 
     // Alias URL lama dipertahankan agar tautan yang sudah pernah digunakan tetap berfungsi.
     Route::get('surat', [SuratController::class, 'index'])->name('surat.index');
     Route::get('surat/{surat}', [SuratController::class, 'show'])->name('surat.show');
     Route::post('surat/{surat}/keputusan', [SuratController::class, 'decide'])->name('surat.keputusan');
     Route::get('surat/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('surat.file');
+    Route::get('surat/{surat}/pesan/{message}/file', [SuratController::class, 'downloadMessageAttachment'])
+        ->whereNumber('message')->name('surat.pesan.file');
 
     Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
     Route::post('templates-surat', [TemplateSuratController::class, 'store'])->name('templates.store');
@@ -305,6 +310,8 @@ Route::middleware(['auth', 'role:sekretaris_koni'])
     Route::get('surat/{surat}', [SuratController::class, 'show'])->name('surat.show');
     Route::post('surat/{surat}/keputusan', [SuratController::class, 'decide'])->name('surat.keputusan');
     Route::get('surat/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('surat.file');
+    Route::get('surat/{surat}/pesan/{message}/file', [SuratController::class, 'downloadMessageAttachment'])
+        ->whereNumber('message')->name('surat.pesan.file');
 
     Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
     Route::post('templates-surat', [TemplateSuratController::class, 'store'])->name('templates.store');
@@ -377,6 +384,9 @@ Route::middleware([
     Route::resource('surat', SuratController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
     Route::post('surat/{surat}/ajukan', [SuratController::class, 'submit'])->name('surat.submit');
     Route::get('surat/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('surat.file');
+    Route::post('surat/{surat}/pesan', [SuratController::class, 'reply'])->name('surat.pesan.store');
+    Route::get('surat/{surat}/pesan/{message}/file', [SuratController::class, 'downloadMessageAttachment'])
+        ->whereNumber('message')->name('surat.pesan.file');
 
     Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
     Route::get('templates-surat/{template}/download', [TemplateSuratController::class, 'download'])->name('templates.download');
@@ -445,7 +455,10 @@ Route::middleware([
     Route::post('surat/{surat}/revisi', [SuratController::class, 'requestRevision'])->name('surat.revisi');
     Route::post('surat/{surat}/teruskan', [SuratController::class, 'forward'])->name('surat.teruskan');
     Route::post('surat/{surat}/sampaikan', [SuratController::class, 'deliver'])->name('surat.sampaikan');
+    Route::post('surat/{surat}/pesan', [SuratController::class, 'sendDisposition'])->name('surat.pesan.store');
     Route::get('surat/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('surat.file');
+    Route::get('surat/{surat}/pesan/{message}/file', [SuratController::class, 'downloadMessageAttachment'])
+        ->whereNumber('message')->name('surat.pesan.file');
 
     Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
     Route::post('templates-surat', [TemplateSuratController::class, 'store'])->name('templates.store');

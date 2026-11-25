@@ -77,6 +77,7 @@ class SuratWorkflowTest extends TestCase
         $adminCabor = $this->userWithRole('admin_cabor', $cabor);
         $staff = $this->userWithRole('staff_koni');
         $admin = $this->userWithRole('admin_koni');
+        $ketua = $this->userWithRole('ketua_koni');
 
         $surat = $this->createAndSubmitSurat($adminCabor);
 
@@ -107,10 +108,18 @@ class SuratWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee($surat->perihal);
 
+        // Admin KONI bertindak sebagai master administrator, bukan pemberi keputusan.
         $this->actingAs($admin)
             ->post(route('admin.persuratan.keputusan', $surat), [
                 'keputusan_admin' => 'diterima',
-                'catatan_admin' => 'Permohonan disetujui.',
+                'catatan_admin' => 'Percobaan keputusan oleh Admin KONI.',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($ketua)
+            ->post(route('admin.persuratan.keputusan', $surat), [
+                'keputusan_admin' => 'diterima',
+                'catatan_admin' => 'Permohonan disetujui oleh Ketua KONI.',
             ])
             ->assertRedirect(route('admin.persuratan.show', $surat));
 
@@ -118,6 +127,8 @@ class SuratWorkflowTest extends TestCase
             'id' => $surat->id,
             'status' => Surat::STATUS_MENUNGGU_PENYAMPAIAN,
             'keputusan_admin' => 'diterima',
+            'admin_koni_id' => $ketua->id,
+            'decision_by_role' => 'ketua_koni',
         ]);
 
         // Admin Cabor belum boleh melihat isi keputusan sebelum Staff menyampaikan hasil.
@@ -138,7 +149,7 @@ class SuratWorkflowTest extends TestCase
         $this->actingAs($adminCabor)
             ->get(route('cabor.surat.show', $surat))
             ->assertOk()
-            ->assertSee('Permohonan disetujui.')
+            ->assertSee('Permohonan disetujui oleh Ketua KONI.')
             ->assertSee('Diterima');
 
         $this->assertDatabaseCount('surat_activities', 5);
@@ -149,14 +160,14 @@ class SuratWorkflowTest extends TestCase
         $cabor = $this->cabor('Atletik Surat Revisi Uji');
         $adminCabor = $this->userWithRole('admin_cabor', $cabor);
         $staff = $this->userWithRole('staff_koni');
-        $admin = $this->userWithRole('admin_koni');
+        $ketua = $this->userWithRole('ketua_koni');
         $surat = $this->createAndSubmitSurat($adminCabor, 'Permohonan yang perlu revisi');
 
         $this->actingAs($staff)
             ->post(route('staff.surat.teruskan', $surat), [])
             ->assertRedirect(route('staff.surat.show', $surat));
 
-        $this->actingAs($admin)
+        $this->actingAs($ketua)
             ->post(route('admin.persuratan.keputusan', $surat), [
                 'keputusan_admin' => 'revisi',
                 'catatan_admin' => 'Mohon lampirkan surat pengantar resmi.',

@@ -1,0 +1,13 @@
+PATCH 26.1.1 HOTFIX - MESSAGE NOTIFICATION REDIRECT
+
+APPLY AFTER PATCH 26.1.
+Root cause:
+SuratController passed `false` as the second argument to Laravel's route() helper.
+Laravel interprets the second argument as route parameters, not the absolute/relative flag.
+This generated an absolute URL, while NotificationController intentionally accepts only relative local paths.
+
+Fix:
+- Correct all five messages.index URL generations to route('messages.index', [], false).
+- Strengthen SuratMessagingTest with an assertion that the notification stores /pesan.
+- No migration required.
+- No database data changes.

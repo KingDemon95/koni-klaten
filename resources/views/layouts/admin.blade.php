@@ -144,7 +144,8 @@
             <!-- USER PROFILE -->
             <div class="admin-topbar-right">
 
-                @include('partials.notification-link')
+                @include('partials.surat-message-link')
+                            @include('partials.notification-link')
 
                 <div class="hidden text-right sm:block">
                     <p class="text-sm font-bold">

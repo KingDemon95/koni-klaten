@@ -1,0 +1,28 @@
+PATCH 26.1 - SURAT MESSAGING AND LEADERSHIP FIX
+
+BASELINE
+- Dibangun dari koni-klaten-main.zip milik pengguna.
+- Tidak menyalin ulang project dari KONI KLATEN NEW.zip.
+- Perubahan desain website publik dari klien belum dimasukkan pada tahap ini agar editor Tampilan Website Publik tetap aman.
+
+FITUR
+1. Admin KONI tetap menjadi master administrator dan tidak dapat memberikan keputusan surat.
+2. Hanya Ketua KONI dan Sekretaris KONI yang dapat menyetujui, menolak, atau meminta revisi.
+3. Sistem mempertahankan decision_by_role dan identitas pengguna yang mengambil keputusan.
+4. Staff dapat mengirim disposisi, catatan, dan lampiran kepada Admin Cabor.
+5. Permintaan revisi Staff juga masuk sebagai pesan disposisi.
+6. Semua Admin Cabor aktif pada cabang terkait menerima notifikasi.
+7. Notifikasi persuratan untuk Cabor mengarah ke inbox /pesan.
+8. Admin Cabor dapat membalas dengan komentar, dokumen, atau keduanya.
+9. Staff menerima notifikasi saat Cabor mengirim balasan.
+10. Inbox Pesan Persuratan tersedia untuk Admin KONI, Ketua, Sekretaris, Staff, dan Admin Cabor.
+11. Detail surat menampilkan percakapan, identitas pengirim, jabatan, waktu, dan lampiran.
+12. Akses pesan dan lampiran tetap mengikuti batas cabang olahraga dan role.
+
+MIGRATION
+- Menambahkan tabel surat_messages.
+- Tidak mengubah atau menghapus data tabel surat yang sudah ada.
+- Tidak menghapus migration lama.
+
+FILE
+- 16 file aplikasi, tampilan, migration, dan regression test.

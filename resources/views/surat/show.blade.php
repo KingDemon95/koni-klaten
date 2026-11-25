@@ -11,13 +11,25 @@
     $canStaffReview = $prefix === 'staff' && in_array($surat->status, [\App\Models\Surat::STATUS_DIAJUKAN, \App\Models\Surat::STATUS_PERLU_REVISI_STAFF], true);
     $canStaffForward = $prefix === 'staff' && $surat->status === \App\Models\Surat::STATUS_DIAJUKAN;
     $canStaffDeliver = $prefix === 'staff' && $surat->status === \App\Models\Surat::STATUS_MENUNGGU_PENYAMPAIAN;
-    $canAdminDecide = in_array($prefix, ['admin', 'sekretaris'], true) && $surat->status === \App\Models\Surat::STATUS_DITERUSKAN;
-    $decisionHeading = $prefix === 'sekretaris' ? 'Keputusan Sekretaris KONI' : (auth()->user()->hasRole('ketua_koni') ? 'Keputusan Ketua KONI' : 'Keputusan pimpinan KONI');
+    $canAdminDecide = auth()->user()->hasAnyRole(['ketua_koni', 'sekretaris_koni'])
+        && in_array($prefix, ['admin', 'sekretaris'], true)
+        && $surat->status === \App\Models\Surat::STATUS_DITERUSKAN;
+    $decisionHeading = auth()->user()->hasRole('sekretaris_koni') ? 'Keputusan Sekretaris KONI' : 'Keputusan Ketua KONI';
+    $canStaffSendDisposition = $prefix === 'staff' && in_array($surat->status, [
+        \App\Models\Surat::STATUS_REVISI,
+        \App\Models\Surat::STATUS_DITERIMA,
+        \App\Models\Surat::STATUS_DITOLAK,
+    ], true);
+    $canCaborReply = $prefix === 'cabor' && in_array($surat->status, [
+        \App\Models\Surat::STATUS_REVISI,
+        \App\Models\Surat::STATUS_DITERIMA,
+        \App\Models\Surat::STATUS_DITOLAK,
+    ], true);
     $decisionRoute = $routeBase.'.keputusan';
     $decisionRoleLabel = match ($surat->decision_by_role) {
         'ketua_koni' => 'Ketua KONI',
         'sekretaris_koni' => 'Sekretaris KONI',
-        'admin_koni', null => 'Admin KONI',
+        null => 'Belum ada keputusan',
         default => 'Pimpinan KONI',
     };
     $statusColor = match ($surat->status) {
@@ -96,7 +108,7 @@
                         <li class="relative border-l-2 border-gray-200 pb-1 pl-5 last:border-transparent">
                             <span class="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-red-600 ring-4 ring-white"></span>
                             <div class="flex flex-wrap items-center justify-between gap-2">
-                                <p class="text-sm font-black text-gray-900">{{ $activity->action === 'keputusan_admin' ? 'Keputusan Pimpinan KONI' : str($activity->action)->replace('_', ' ')->title() }}</p>
+                                <p class="text-sm font-black text-gray-900">{{ $activity->action === 'keputusan_admin' ? 'Keputusan Ketua / Sekretaris KONI' : str($activity->action)->replace('_', ' ')->title() }}</p>
                                 <time class="text-xs text-gray-500">{{ $activity->created_at?->format('d M Y, H:i') }}</time>
                             </div>
                             <p class="mt-1 text-xs text-gray-500">{{ $activity->actor?->name ?? 'Sistem' }}@if($activity->status_to) · {{ $statusLabels[$activity->status_to] ?? $activity->status_to }}@endif</p>
@@ -109,16 +121,79 @@
                     @endforelse
                 </ol>
             </article>
+
+            <article class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h3 class="text-lg font-black text-gray-900">Pesan dan Disposisi</h3>
+                        <p class="mt-1 text-sm text-gray-500">Catatan Staff dan balasan Admin Cabor tersimpan dalam riwayat surat ini.</p>
+                    </div>
+                    <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600">{{ $surat->messages->count() }} pesan</span>
+                </div>
+
+                <div class="mt-5 space-y-4">
+                    @forelse ($surat->messages as $message)
+                        @php
+                            $isStaffMessage = $message->sender_role === 'staff_koni';
+                            $messageTone = $isStaffMessage ? 'border-blue-200 bg-blue-50/70' : 'border-emerald-200 bg-emerald-50/70';
+                        @endphp
+                        <div class="rounded-xl border {{ $messageTone }} p-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <p class="text-sm font-black text-gray-900">{{ $message->sender?->name ?? 'Pengguna tidak tersedia' }}</p>
+                                    <p class="mt-0.5 text-xs font-semibold text-gray-500">{{ $message->senderRoleLabel() }} · {{ $message->typeLabel() }}</p>
+                                </div>
+                                <time class="text-xs text-gray-500">{{ $message->created_at?->timezone(config('app.timezone'))->format('d M Y, H:i') }}</time>
+                            </div>
+                            @if ($message->body)
+                                <p class="mt-3 whitespace-pre-line text-sm leading-6 text-gray-700">{{ $message->body }}</p>
+                            @endif
+                            @if ($message->attachment_path)
+                                <a href="{{ route($routeBase.'.pesan.file', [$surat, $message]) }}" class="mt-3 inline-flex max-w-full items-center gap-2 break-all rounded-lg border border-white/80 bg-white px-3 py-2 text-xs font-bold text-gray-700 hover:text-red-700">
+                                    Unduh lampiran · {{ $message->attachment_original_name ?: 'Dokumen balasan' }}
+                                </a>
+                            @endif
+                        </div>
+                    @empty
+                        <p class="rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500">Belum ada pesan disposisi atau balasan untuk surat ini.</p>
+                    @endforelse
+                </div>
+
+                @if ($canStaffSendDisposition)
+                    <form method="POST" action="{{ route('staff.surat.pesan.store', $surat) }}" enctype="multipart/form-data" class="mt-5 space-y-3 border-t border-gray-100 pt-5">
+                        @csrf
+                        <h4 class="font-black text-gray-900">Kirim pesan lanjutan ke Admin Cabor</h4>
+                        <label for="staff_message_body" class="block text-sm font-bold text-gray-700">Isi disposisi / pesan</label>
+                        <textarea id="staff_message_body" name="body" rows="3" maxlength="3000" required class="w-full rounded-lg border-gray-300 text-sm" placeholder="Tuliskan arahan atau keterangan untuk Admin Cabor"></textarea>
+                        <label for="staff_message_attachment" class="block text-sm font-bold text-gray-700">Lampiran (opsional)</label>
+                        <input id="staff_message_attachment" type="file" name="attachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full rounded-lg border border-gray-300 p-2 text-xs">
+                        <button class="w-full rounded-lg bg-[#E60012] px-4 py-3 text-sm font-bold text-white hover:bg-red-700">Kirim Disposisi</button>
+                    </form>
+                @endif
+
+                @if ($canCaborReply)
+                    <form method="POST" action="{{ route('cabor.surat.pesan.store', $surat) }}" enctype="multipart/form-data" class="mt-5 space-y-3 border-t border-gray-100 pt-5">
+                        @csrf
+                        <h4 class="font-black text-gray-900">Balas pesan Staff KONI</h4>
+                        <label for="cabor_message_body" class="block text-sm font-bold text-gray-700">Komentar / keterangan balasan</label>
+                        <textarea id="cabor_message_body" name="body" rows="3" maxlength="3000" class="w-full rounded-lg border-gray-300 text-sm" placeholder="Tulis komentar atau keterangan balasan surat"></textarea>
+                        <label for="cabor_message_attachment" class="block text-sm font-bold text-gray-700">Unggah surat balasan (opsional jika komentar diisi)</label>
+                        <input id="cabor_message_attachment" type="file" name="attachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full rounded-lg border border-gray-300 p-2 text-xs">
+                        <p class="text-xs text-gray-500">Isi komentar atau unggah dokumen. Salah satu wajib diisi. Maksimal 10 MB.</p>
+                        <button class="w-full rounded-lg bg-[#E60012] px-4 py-3 text-sm font-bold text-white hover:bg-red-700">Kirim Balasan ke Staff KONI</button>
+                    </form>
+                @endif
+            </article>
         </div>
 
         <aside class="space-y-6">
             @if ($prefix === 'cabor' && $surat->status === \App\Models\Surat::STATUS_MENUNGGU_PENYAMPAIAN)
-                <div class="rounded-xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-900">Keputusan pimpinan KONI sudah diproses. Staff KONI sedang menyampaikan hasil resmi kepada Admin Cabor.</div>
+                <div class="rounded-xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-900">Keputusan Ketua atau Sekretaris KONI sudah diproses. Staff KONI sedang menyampaikan hasil resmi kepada Admin Cabor.</div>
             @endif
 
             @if ($prefix === 'staff' && $surat->status === \App\Models\Surat::STATUS_PERLU_REVISI_STAFF)
                 <div class="rounded-xl border border-amber-200 bg-amber-50 p-5">
-                    <h3 class="font-black text-amber-900">Keputusan pimpinan meminta revisi</h3>
+                    <h3 class="font-black text-amber-900">Keputusan Ketua / Sekretaris KONI meminta revisi</h3>
                     <p class="mt-2 whitespace-pre-line text-sm leading-6 text-amber-800">{{ $surat->catatan_admin }}</p>
                     <p class="mt-2 text-xs text-amber-700">Staff perlu meneruskan catatan ini kepada Admin Cabor.</p>
                 </div>
@@ -126,7 +201,7 @@
 
             @if ($prefix === 'staff' && $surat->status === \App\Models\Surat::STATUS_MENUNGGU_PENYAMPAIAN)
                 <div class="rounded-xl border border-blue-200 bg-blue-50 p-5">
-                    <h3 class="font-black text-blue-900">Keputusan pimpinan KONI</h3>
+                    <h3 class="font-black text-blue-900">Keputusan Ketua / Sekretaris KONI</h3>
                     <p class="mt-2 text-sm font-bold text-blue-900">{{ ucfirst($surat->keputusan_admin ?? '-') }}</p>
                     @if ($surat->catatan_admin)<p class="mt-2 whitespace-pre-line text-sm text-blue-800">{{ $surat->catatan_admin }}</p>@endif
                     <p class="mt-3 text-xs text-blue-700">Sampaikan hasil ini kepada Admin Cabor untuk menutup proses surat.</p>
@@ -165,7 +240,7 @@
                     @endif
                     <form method="POST" action="{{ route('staff.surat.revisi', $surat) }}" class="mt-5 space-y-3 border-t border-gray-100 pt-5">
                         @csrf
-                        <label for="catatan_staff_revisi" class="block text-sm font-bold text-gray-700">{{ $surat->status === \App\Models\Surat::STATUS_PERLU_REVISI_STAFF ? 'Catatan revisi dari keputusan pimpinan' : 'Catatan revisi untuk Admin Cabor' }}</label>
+                        <label for="catatan_staff_revisi" class="block text-sm font-bold text-gray-700">{{ $surat->status === \App\Models\Surat::STATUS_PERLU_REVISI_STAFF ? 'Catatan revisi dari Ketua / Sekretaris KONI' : 'Catatan revisi untuk Admin Cabor' }}</label>
                         <textarea id="catatan_staff_revisi" name="catatan_staff" rows="3" maxlength="3000" required class="w-full rounded-lg border-gray-300 text-sm" placeholder="Jelaskan bagian yang perlu diperbaiki">{{ old('catatan_staff', $surat->status === \App\Models\Surat::STATUS_PERLU_REVISI_STAFF ? $surat->catatan_admin : '') }}</textarea>
                         <button class="w-full rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{{ $surat->status === \App\Models\Surat::STATUS_PERLU_REVISI_STAFF ? 'Kirim Catatan Revisi ke Admin Cabor' : 'Minta Revisi Admin Cabor' }}</button>
                     </form>
@@ -175,7 +250,7 @@
             @if ($canAdminDecide)
                 <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                     <h3 class="font-black text-gray-900">{{ $decisionHeading }}</h3>
-                    <p class="mt-1 text-xs leading-5 text-gray-500">Ketua, Sekretaris, atau Admin KONI dapat memberikan satu keputusan. Persetujuan pihak lain tidak diperlukan. Staff menyampaikan hasil kepada Admin Cabor.</p>
+                    <p class="mt-1 text-xs leading-5 text-gray-500">Ketua atau Sekretaris KONI dapat memberikan satu keputusan. Sistem mencatat nama dan jabatan pemberi keputusan. Admin KONI berperan sebagai master administrator.</p>
                     <form method="POST" action="{{ route($decisionRoute, $surat) }}" enctype="multipart/form-data" class="mt-4 space-y-3">
                         @csrf
                         <label for="keputusan_admin" class="block text-sm font-bold text-gray-700">Keputusan</label>
@@ -197,8 +272,15 @@
             @if ($canStaffDeliver)
                 <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                     <h3 class="font-black text-gray-900">Sampaikan Hasil ke Admin Cabor</h3>
-                    <p class="mt-2 text-sm text-gray-600">Pastikan keputusan pimpinan KONI dan dokumen balasan sudah diperiksa sebelum disampaikan.</p>
-                    <form method="POST" action="{{ route('staff.surat.sampaikan', $surat) }}" class="mt-4" onsubmit="return confirm('Sampaikan hasil keputusan ini kepada Admin Cabor?')">@csrf<button class="w-full rounded-lg bg-[#E60012] px-4 py-3 text-sm font-bold text-white hover:bg-red-700">Tandai Hasil Sudah Disampaikan</button></form>
+                    <p class="mt-2 text-sm text-gray-600">Staff meneruskan keputusan dan disposisi ini kepada seluruh Admin Cabor terkait. Admin Cabor dapat memberi komentar atau mengunggah surat balasan.</p>
+                    <form method="POST" action="{{ route('staff.surat.sampaikan', $surat) }}" enctype="multipart/form-data" class="mt-4 space-y-3" onsubmit="return confirm('Teruskan hasil keputusan dan disposisi ini kepada Admin Cabor?')">
+                        @csrf
+                        <label for="catatan_disposisi" class="block text-sm font-bold text-gray-700">Catatan disposisi untuk Admin Cabor (opsional)</label>
+                        <textarea id="catatan_disposisi" name="catatan_disposisi" rows="3" maxlength="3000" class="w-full rounded-lg border-gray-300 text-sm" placeholder="Tambahkan arahan atau keterangan penyampaian hasil"></textarea>
+                        <label for="lampiran_disposisi" class="block text-sm font-bold text-gray-700">Lampiran disposisi (opsional)</label>
+                        <input id="lampiran_disposisi" type="file" name="lampiran_disposisi" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full rounded-lg border border-gray-300 p-2 text-xs">
+                        <button class="w-full rounded-lg bg-[#E60012] px-4 py-3 text-sm font-bold text-white hover:bg-red-700">Teruskan Disposisi ke Admin Cabor</button>
+                    </form>
                 </section>
             @endif
 
@@ -207,7 +289,7 @@
                 <ol class="mt-3 space-y-2 text-xs leading-5 text-gray-600">
                     <li>1. Admin Cabor mengajukan surat kepada Staff KONI.</li>
                     <li>2. Staff memeriksa dan meneruskan surat kepada pimpinan KONI, atau meminta revisi.</li>
-                    <li>3. Ketua atau Sekretaris KONI memberikan keputusan secara mandiri. Satu keputusan sudah cukup.</li>
+                    <li>3. Ketua atau Sekretaris KONI memberikan keputusan. Sistem mencatat siapa yang menyetujui, menolak, atau meminta revisi.</li>
                     <li>4. Staff menyampaikan keputusan kepada Admin Cabor dan menutup proses.</li>
                 </ol>
             </section>

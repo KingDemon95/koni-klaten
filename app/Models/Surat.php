@@ -88,13 +88,18 @@ class Surat extends Model
         return $this->hasMany(SuratActivity::class)->with('actor')->latest();
     }
 
+    public function messages(): HasMany
+    {
+        return $this->hasMany(SuratMessage::class)->with('sender')->oldest();
+    }
+
     public static function statusLabels(): array
     {
         return [
             self::STATUS_DRAFT => 'Draft',
             self::STATUS_DIAJUKAN => 'Menunggu pemeriksaan Staff',
             self::STATUS_REVISI => 'Perlu revisi Admin Cabor',
-            self::STATUS_DITERUSKAN => 'Menunggu persetujuan Pimpinan KONI',
+            self::STATUS_DITERUSKAN => 'Menunggu persetujuan Ketua / Sekretaris KONI',
             self::STATUS_PERLU_REVISI_STAFF => 'Keputusan revisi menunggu Staff',
             self::STATUS_MENUNGGU_PENYAMPAIAN => 'Menunggu penyampaian hasil',
             self::STATUS_DITERIMA => 'Diterima',
