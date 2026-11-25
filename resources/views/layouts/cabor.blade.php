@@ -194,7 +194,7 @@
 
         </header>
 
-        <main id="konten-utama" tabindex="-1" class="p-4 sm:p-6 lg:p-8">
+        <main id="konten-utama" tabindex="-1" class="min-w-0 w-full max-w-full p-4 sm:p-6 lg:p-8">
             @include('partials.demo-feedback')
             @yield('content')
         </main>

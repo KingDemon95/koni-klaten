@@ -4,6 +4,51 @@
 @section('heading', 'Detail Absensi')
 
 @section('content')
+<style>
+    .attendance-page {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+    .attendance-page .attendance-qr-frame {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: min(100%, 15rem);
+        max-width: 100%;
+        min-width: 0;
+        aspect-ratio: 1 / 1;
+        margin: 1rem auto;
+        padding: .5rem;
+        overflow: hidden;
+        border: 1px solid #f3f4f6;
+        border-radius: .75rem;
+        background: #fff;
+    }
+    .attendance-page .attendance-qr-frame svg {
+        display: block;
+        width: 100% !important;
+        height: auto !important;
+        max-width: 100% !important;
+        flex: 0 1 auto;
+    }
+    .attendance-page .attendance-qr-url {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+    .attendance-page article,
+    .attendance-page section,
+    .attendance-page aside,
+    .attendance-page form {
+        min-width: 0;
+    }
+</style>
 @php
     $roleLabels = [
         'admin_koni' => 'Admin KONI',
@@ -17,13 +62,13 @@
     ];
 @endphp
 
-<div class="mx-auto max-w-7xl space-y-6">
+<div class="attendance-page mx-auto w-full min-w-0 max-w-7xl space-y-6">
     @if(session('success'))<div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">{{ session('error') }}</div>@endif
 
     <div class="flex flex-wrap items-center justify-between gap-3">
         <a href="{{ route($routePrefix.'.absensi.index') }}" class="text-sm font-semibold text-gray-500 hover:text-red-600">← Kembali ke daftar sesi</a>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex min-w-0 flex-wrap gap-2">
             <a href="{{ route($routePrefix.'.absensi.export', $attendanceSession) }}" class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-bold text-gray-700">Ekspor CSV</a>
             @if($canManage && $attendanceSession->status === 'open')
                 <form method="POST" action="{{ route($routePrefix.'.absensi.close', $attendanceSession) }}" onsubmit="return confirm('Tutup sesi absensi ini? QR tidak akan dapat digunakan lagi.');">
@@ -34,8 +79,8 @@
         </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7">
+    <div class="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
+        <section class="min-w-0 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-7">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div><p class="text-xs font-bold uppercase tracking-[0.18em] text-red-600">Sesi absensi</p><h2 class="mt-2 text-2xl font-black">{{ $attendanceSession->title }}</h2><p class="mt-2 text-sm text-gray-500">{{ $attendanceSession->description ?: 'Tidak ada keterangan tambahan.' }}</p></div>
                 <span class="rounded-full px-3 py-1 text-xs font-bold {{ $attendanceSession->status === 'closed' ? 'bg-gray-100 text-gray-600' : ($attendanceSession->ends_at->isPast() ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700') }}">{{ $attendanceSession->status === 'closed' ? 'Ditutup' : ($attendanceSession->ends_at->isPast() ? 'Berakhir' : 'Dibuka') }}</span>
@@ -48,15 +93,15 @@
             </dl>
         </section>
 
-        <aside id="attendance-qr-print" class="rounded-2xl border border-gray-200 bg-white p-5 text-center shadow-sm">
+        <aside id="attendance-qr-print" class="min-w-0 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 text-center shadow-sm sm:p-5">
             <h3 class="font-black">QR Code Harian</h3>
             <p class="mt-1 text-xs text-gray-500">QR berubah setiap hari dan hanya berlaku pada tanggal yang tampil. Halaman ini akan memuat ulang QR setelah pergantian hari.</p>
-            <div id="attendance-qr-svg" class="mx-auto my-4 max-w-[240px] rounded-xl border border-gray-100 bg-white p-3">{!! $qrSvg !!}</div>
-            <p class="break-all rounded-lg bg-gray-50 p-3 text-[11px] text-gray-600">{{ $scanUrl }}</p>
+            <div id="attendance-qr-svg" class="attendance-qr-frame">{!! $qrSvg !!}</div>
+            <p class="attendance-qr-url rounded-lg bg-gray-50 p-3 text-[11px] text-gray-600">{{ $scanUrl }}</p>
             <div class="no-print mt-3 space-y-2">
                 <button type="button" id="copy-attendance-url" class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-xs font-bold text-gray-700" data-url="{{ $scanUrl }}">Salin tautan absensi</button>
                 @if($attendanceSession->status === 'open' && $attendanceSession->ends_at->isFuture())
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="grid min-w-0 grid-cols-2 gap-2">
                         <a href="{{ route($routePrefix.'.absensi.qr.download', $attendanceSession) }}" class="rounded-lg bg-gray-900 px-3 py-2.5 text-xs font-bold text-white hover:bg-gray-700">Unduh SVG</a>
                         <button type="button" id="download-qr-png" data-filename="qr-absensi-{{ \Illuminate\Support\Str::slug($attendanceSession->title) }}-{{ now()->format('Ymd') }}.png" class="rounded-lg bg-[#E60012] px-3 py-2.5 text-xs font-bold text-white hover:bg-red-700">Unduh PNG</button>
                     </div>
@@ -73,7 +118,7 @@
         </aside>
     </div>
 
-    <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <section class="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 sm:px-6">
             <div><h3 class="font-black">Daftar Kehadiran</h3><p class="mt-1 text-xs text-gray-500">Selfie check-in dan check-out tersimpan secara privat.</p></div>
             <span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700">{{ number_format($attendanceSession->records()->count(), 0, ',', '.') }} check-in</span>

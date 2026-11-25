@@ -1,0 +1,23 @@
+PATCH 14.3 - PUBLIC WEBSITE REGRESSION FIX
+
+Isi patch:
+- resources/views/layouts/public.blade.php
+  - Menambahkan data-website-page dan data-website-mode untuk mengidentifikasi halaman dan mode preview/published.
+  - Memastikan managed sections menggunakan lebar 100% pada layout publik.
+  - Menentukan background-size untuk dua lapisan background hero.
+- tests/Feature/FinalizationTest.php
+  - Menyesuaikan pemeriksaan menu mobile dengan class aktual public-mobile-menu.
+
+Tidak ada migration database.
+Patch ini tidak mengubah controller absensi, QR, kamera, selfie, atau alur check-in/check-out.
+
+Pemasangan:
+1. Backup file yang akan diganti.
+2. Ekstrak ZIP dari root proyek ~/koni-klaten.
+3. Jalankan:
+   docker compose exec laravel.test php artisan optimize:clear
+   docker compose exec laravel.test php artisan test --filter=FinalizationTest
+   docker compose exec laravel.test php artisan test --filter=WebsiteAppearanceTest
+   docker compose exec laravel.test php artisan test
+
+Jika test terakhir masih gagal, kirim output lengkapnya.

@@ -53,7 +53,7 @@
                 <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600 transition hover:border-red-500 hover:bg-red-50 hover:text-red-600">Logout</button></form>
             </div>
         </header>
-        <main id="konten-utama" tabindex="-1" class="p-4 sm:p-6 lg:p-8">
+        <main id="konten-utama" tabindex="-1" class="min-w-0 w-full max-w-full p-4 sm:p-6 lg:p-8">
             @include('partials.demo-feedback')
             @yield('content')
         </main>

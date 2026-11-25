@@ -4,7 +4,26 @@
 @section('heading', 'Detail Absensi')
 
 @section('content')
-<div class="mx-auto max-w-7xl space-y-6">
+<style>
+    .attendance-qr-frame {
+        box-sizing: border-box;
+        width: min(100%, 15rem);
+        margin: 1rem auto;
+        padding: .5rem;
+        overflow: hidden;
+        border: 1px solid #f3f4f6;
+        border-radius: .75rem;
+        background: #fff;
+    }
+    .attendance-qr-frame svg {
+        display: block;
+        width: 100% !important;
+        height: auto !important;
+        max-width: 100% !important;
+    }
+    .attendance-qr-url { min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-all; }
+</style>
+<div class="mx-auto min-w-0 max-w-7xl space-y-6">
     @if(session('success'))<div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">{{ session('error') }}</div>@endif
 
@@ -21,8 +40,8 @@
         </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7">
+    <div class="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section class="min-w-0 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-7">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div><p class="text-xs font-bold uppercase tracking-[0.18em] text-red-600">Sesi absensi</p><h2 class="mt-2 text-2xl font-black">{{ $attendanceSession->title }}</h2><p class="mt-2 text-sm text-gray-500">{{ $attendanceSession->description ?: 'Tidak ada keterangan tambahan.' }}</p></div>
                 <span class="rounded-full px-3 py-1 text-xs font-bold {{ $attendanceSession->status === 'closed' ? 'bg-gray-100 text-gray-600' : ($attendanceSession->ends_at->isPast() ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700') }}">{{ $attendanceSession->status === 'closed' ? 'Ditutup' : ($attendanceSession->ends_at->isPast() ? 'Berakhir' : 'Dibuka') }}</span>
@@ -35,11 +54,11 @@
             </dl>
         </section>
 
-        <aside class="rounded-2xl border border-gray-200 bg-white p-5 text-center shadow-sm">
+        <aside class="min-w-0 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 text-center shadow-sm sm:p-5">
             <h3 class="font-black">QR Code Kehadiran</h3>
             <p class="mt-1 text-xs text-gray-500">Peserta scan QR lalu login dan ambil selfie.</p>
-            <div class="mx-auto my-4 max-w-[240px] rounded-xl border border-gray-100 bg-white p-3">{!! $qrSvg !!}</div>
-            <p class="break-all rounded-lg bg-gray-50 p-3 text-[11px] text-gray-600">{{ route('attendance.check-in.show', $attendanceSession->token) }}</p>
+            <div class="attendance-qr-frame">{!! $qrSvg !!}</div>
+            <p class="attendance-qr-url break-all rounded-lg bg-gray-50 p-3 text-[11px] text-gray-600">{{ route('attendance.check-in.show', $attendanceSession->token) }}</p>
             <button type="button" id="copy-attendance-url" class="mt-3 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-xs font-bold text-gray-700" data-url="{{ route('attendance.check-in.show', $attendanceSession->token) }}">Salin tautan absensi</button>
             <p id="copy-feedback" class="mt-2 text-xs text-green-700" aria-live="polite"></p>
             @if($attendanceSession->status !== 'open' || $attendanceSession->ends_at->isPast())

@@ -8,6 +8,40 @@
     <title>@yield('title', 'Dashboard') - KONI Kabupaten Klaten</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        .admin-topbar {
+            box-sizing: border-box;
+            display: flex;
+            min-width: 0;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: .5rem;
+            padding: .75rem .75rem;
+        }
+        .admin-topbar-left { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; gap: .5rem; }
+        .admin-topbar-heading { min-width: 0; flex: 1 1 auto; }
+        .admin-topbar-label { display: none; }
+        .admin-topbar-title { max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; line-height: 1.5; }
+        .admin-topbar-right { display: flex; min-width: 0; flex: 0 0 auto; align-items: center; gap: .375rem; }
+        .admin-topbar-avatar { display: none !important; }
+        .admin-topbar-logout { padding: .5rem .625rem; white-space: nowrap; }
+        .admin-mobile-menu { position: relative; flex: 0 0 auto; }
+        .admin-mobile-menu-trigger { display: inline-flex; min-height: 2.5rem; align-items: center; justify-content: center; cursor: pointer; list-style: none; white-space: nowrap; }
+        .admin-mobile-menu-trigger::-webkit-details-marker { display: none; }
+        .admin-mobile-menu-label { display: none; }
+        .admin-mobile-menu-panel { position: absolute; top: 100%; left: 0; z-index: 50; box-sizing: border-box; width: min(18rem, calc(100vw - 1.5rem)); margin-top: .75rem; }
+        @media (min-width: 640px) {
+            .admin-topbar { flex-wrap: nowrap; gap: 1rem; padding-inline: 1.75rem; }
+            .admin-topbar-left { gap: .75rem; }
+            .admin-topbar-label { display: block; }
+            .admin-topbar-title { max-width: none; font-size: 1.25rem; }
+            .admin-topbar-right { gap: .75rem; }
+            .admin-topbar-avatar { display: flex !important; }
+            .admin-topbar-logout { padding-inline: .75rem; }
+            .admin-mobile-menu-label { display: inline; }
+        }
+    </style>
 </head>
 
 <body class="min-h-screen bg-[#F4F5F7] text-gray-900">
@@ -68,18 +102,18 @@
     <div class="min-w-0 flex-1">
 
         <!-- TOPBAR -->
-        <header class="sticky top-0 z-30 flex min-h-20 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-7">
+        <header class="admin-topbar sticky top-0 z-30 min-h-20 border-b border-gray-200 bg-white">
 
-            <div class="flex items-center gap-3">
+            <div class="admin-topbar-left">
 
                 <!-- MOBILE MENU -->
-                <details class="relative lg:hidden">
+                <details class="admin-mobile-menu lg:hidden">
 
-                    <summary class="cursor-pointer list-none rounded-lg bg-gray-100 px-3 py-2 text-sm font-bold">
-                        ☰ Menu
+                    <summary class="admin-mobile-menu-trigger rounded-lg bg-gray-100 px-2 py-2 text-sm font-bold" aria-label="Buka menu admin">
+                        ☰ <span class="admin-mobile-menu-label">Menu</span>
                     </summary>
 
-                    <div class="absolute left-0 top-full z-50 mt-3 w-72 rounded-xl bg-[#171717] p-4 shadow-2xl">
+                    <div class="admin-mobile-menu-panel rounded-xl bg-[#171717] p-4 shadow-2xl">
 
                         <div class="mb-4 border-b border-white/10 pb-4">
                             <p class="font-black text-white">KONI KLATEN</p>
@@ -94,12 +128,12 @@
 
                 </details>
 
-                <div>
-                    <p class="text-[10px] font-bold tracking-[0.2em] text-[#E60012]">
+                <div class="admin-topbar-heading">
+                    <p class="admin-topbar-label text-[10px] font-bold tracking-[0.2em] text-[#E60012]">
                         {{ auth()->user()->hasRole('ketua_koni') ? 'KEPEMIMPINAN KONI' : 'ADMINISTRATION' }}
                     </p>
 
-                    <h1 class="text-lg font-black text-gray-900 sm:text-xl">
+                    <h1 class="admin-topbar-title font-black text-gray-900">
                         @yield('heading', 'Dashboard')
                     </h1>
                 </div>
@@ -108,7 +142,7 @@
 
 
             <!-- USER PROFILE -->
-            <div class="flex items-center gap-3">
+            <div class="admin-topbar-right">
 
                 @include('partials.notification-link')
 
@@ -122,7 +156,7 @@
                     </p>
                 </div>
 
-                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#171717] font-bold text-[#FFD700]">
+                <div class="admin-topbar-avatar flex h-10 w-10 items-center justify-center rounded-full bg-[#171717] font-bold text-[#FFD700]">
                     {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                 </div>
 
@@ -131,7 +165,7 @@
 
                     <button
                         type="submit"
-                        class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600 transition hover:border-red-500 hover:bg-red-50 hover:text-red-600"
+                        class="admin-topbar-logout rounded-lg border border-gray-200 text-xs font-bold text-gray-600 transition hover:border-red-500 hover:bg-red-50 hover:text-red-600"
                     >
                         Logout
                     </button>
@@ -143,7 +177,7 @@
 
 
         <!-- PAGE CONTENT -->
-        <main id="konten-utama" tabindex="-1" class="p-4 sm:p-6 lg:p-8">
+        <main id="konten-utama" tabindex="-1" class="min-w-0 w-full max-w-full p-4 sm:p-6 lg:p-8">
             @include('partials.demo-feedback')
 
             @yield('content')

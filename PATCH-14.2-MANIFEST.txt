@@ -1,0 +1,16 @@
+PATCH 14.2 - ALL ROLES ATTENDANCE MOBILE FIX
+
+Changed files:
+- resources/views/attendance/index.blade.php
+- resources/views/attendance/show.blade.php
+- resources/views/layouts/admin.blade.php
+- resources/views/layouts/cabor.blade.php
+- resources/views/layouts/staff.blade.php
+- resources/views/layouts/sekretaris.blade.php
+- resources/views/layouts/atlet.blade.php
+- resources/views/layouts/pelatih.blade.php
+- tests/Feature/MobileResponsiveLayoutTest.php
+- README-PATCH-14.2.md
+
+No migration or database schema changes.
+No route, authorization, QR token, scan, camera, or selfie workflow changes.

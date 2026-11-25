@@ -4,6 +4,49 @@
 @section('heading', 'Absensi QR dan Selfie')
 
 @section('content')
+<style>
+    .attendance-page {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+    .attendance-page .attendance-qr-image {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: min(100%, 12rem);
+        max-width: 100%;
+        min-width: 0;
+        aspect-ratio: 1 / 1;
+        margin: .75rem auto;
+        padding: .5rem;
+        overflow: hidden;
+        border: 1px solid #f3f4f6;
+        border-radius: .75rem;
+        background: #fff;
+    }
+    .attendance-page .attendance-qr-image svg {
+        display: block;
+        width: 100% !important;
+        height: auto !important;
+        max-width: 100% !important;
+        flex: 0 1 auto;
+    }
+    .attendance-page .attendance-qr-feedback,
+    .attendance-page .attendance-qr-url {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+    .attendance-page article,
+    .attendance-page section,
+    .attendance-page form,
+    .attendance-page fieldset {
+        min-width: 0;
+    }
+</style>
 @php
     $roleLabels = [
         'admin_koni' => 'Admin KONI',
@@ -17,13 +60,13 @@
     ];
 @endphp
 
-<div class="mx-auto max-w-7xl space-y-6">
+<div class="attendance-page mx-auto w-full min-w-0 max-w-7xl space-y-6">
     @if(session('success'))
         <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">{{ session('success') }}</div>
     @endif
 
     @if($canManage)
-        <section class="flex flex-col justify-between gap-4 rounded-2xl bg-gradient-to-r from-[#8F0010] to-[#E60012] p-6 text-white shadow-lg sm:flex-row sm:items-center sm:p-8">
+        <section class="min-w-0 flex flex-col justify-between gap-4 rounded-2xl bg-gradient-to-r from-[#8F0010] to-[#E60012] p-4 text-white shadow-lg sm:flex-row sm:items-center sm:p-8">
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.2em] text-yellow-200">Kehadiran kegiatan</p>
                 <h2 class="mt-2 text-2xl font-black">Kelola Sesi Absensi</h2>
@@ -32,14 +75,14 @@
             <a href="{{ route($routePrefix.'.absensi.create') }}" class="shrink-0 rounded-lg bg-white px-5 py-3 text-sm font-black text-red-700 hover:bg-red-50">+ Buat Sesi Absensi</a>
         </section>
     @else
-        <section class="rounded-2xl bg-gradient-to-r from-[#8F0010] to-[#E60012] p-6 text-white shadow-lg">
+        <section class="min-w-0 rounded-2xl bg-gradient-to-r from-[#8F0010] to-[#E60012] p-4 text-white shadow-lg sm:p-6">
             <p class="text-xs font-bold uppercase tracking-[0.2em] text-yellow-200">Kehadiran pribadi</p>
             <h2 class="mt-2 text-2xl font-black">Absensi QR dan Selfie</h2>
             <p class="mt-2 max-w-2xl text-sm text-red-100">Unduh QR sesi dari halaman ini, lalu pilih gambar QR tersebut dari galeri untuk memulai absensi. Setelah QR valid, kamera selfie akan dibuka.</p>
         </section>
     @endif
 
-    <section class="rounded-2xl border border-red-100 bg-white p-5 shadow-sm sm:p-6">
+    <section class="min-w-0 rounded-2xl border border-red-100 bg-white p-4 shadow-sm sm:p-6">
         <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.18em] text-red-600">Akses pribadi</p>
@@ -49,14 +92,14 @@
             <span class="rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700">{{ $mySessions->count() }} sesi tersedia</span>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             @forelse($mySessions as $mySession)
                 @php($myRecord = $mySession->records->first())
                 @php($isUpcoming = $mySession->starts_at->isFuture() && !$myRecord)
                 @php($isCompleted = $myRecord?->checked_out_at !== null)
-                <article class="flex flex-col rounded-xl border border-gray-200 p-4">
+                <article class="flex min-w-0 w-full flex-col rounded-xl border border-gray-200 p-4">
                     <div class="flex items-start justify-between gap-3">
-                        <h4 class="font-black text-gray-900">{{ $mySession->title }}</h4>
+                        <h4 class="min-w-0 break-words font-black text-gray-900">{{ $mySession->title }}</h4>
                         @if($isCompleted)
                             <span class="shrink-0 rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-bold text-green-700">Selesai</span>
                         @elseif($myRecord)
@@ -78,12 +121,12 @@
                     @endif
 
                     @if(!$isCompleted)
-                        <div class="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-3">
+                        <div class="mt-4 min-w-0 rounded-xl border border-gray-100 bg-gray-50 p-3">
                             <div class="flex items-center justify-between gap-2">
                                 <p class="text-xs font-black text-gray-800">QR Absensi Hari Ini</p>
                                 <span class="text-[10px] font-semibold text-gray-500">Token harian</span>
                             </div>
-                            <div id="attendance-qr-{{ $mySession->id }}" class="mx-auto my-3 flex max-w-[180px] items-center justify-center rounded-lg bg-white p-3 [&_svg]:h-full [&_svg]:w-full">
+                            <div id="attendance-qr-{{ $mySession->id }}" class="attendance-qr-image">
                                 {!! $mySession->qr_svg !!}
                             </div>
                             <button type="button" class="download-attendance-qr w-full rounded-lg bg-gray-900 px-3 py-2.5 text-xs font-black text-white hover:bg-gray-700" data-qr-target="attendance-qr-{{ $mySession->id }}" data-filename="qr-absensi-{{ \Illuminate\Support\Str::slug($mySession->title) }}-{{ now()->format('Ymd') }}.png">
@@ -103,7 +146,7 @@
                     @endif
                 </article>
             @empty
-                <div class="rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center md:col-span-2 xl:col-span-3">
+                <div class="min-w-0 rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center md:col-span-2 xl:col-span-3">
                     <p class="text-sm font-bold text-gray-700">Belum ada sesi absensi untuk akun Anda.</p>
                     <p class="mt-1 text-xs text-gray-500">QR akan muncul setelah pengelola membuat sesi yang mencakup role dan cabang olahraga Anda.</p>
                 </div>

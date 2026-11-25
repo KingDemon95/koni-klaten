@@ -84,7 +84,9 @@ class FinalizationTest extends TestCase
         $layout = file_get_contents(resource_path('views/layouts/public.blade.php'));
 
         $this->assertIsString($layout);
-        $this->assertStringContainsString('details class="relative xl:hidden"', $layout);
+        $this->assertStringContainsString('details class="public-mobile-menu xl:hidden"', $layout);
+        $this->assertStringContainsString('public-mobile-menu-trigger', $layout);
+        $this->assertStringContainsString('public-mobile-menu-panel', $layout);
         $this->assertStringContainsString('text-xs font-semibold text-slate-600 xl:flex', $layout);
         $this->assertStringNotContainsString('details class="relative lg:hidden"', $layout);
     }
