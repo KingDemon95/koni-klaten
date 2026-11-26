@@ -56,7 +56,12 @@
                 Dashboard
             </a>
 
-            <a href="{{ route('cabor.absensi.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('cabor.absensi.*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Absensi QR & Selfie</a>
+            <a href="{{ route('cabor.absensi.index') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('cabor.absensi.index') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">Absensi QR & Selfie</a>
+
+            <a href="{{ route('cabor.absensi.jadwal-latihan') }}"
+               class="block rounded-xl px-4 py-3 text-sm font-semibold {{ request()->routeIs('cabor.absensi.jadwal-latihan*') ? 'bg-[#E60012] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white' }}">
+                Atur Jadwal Latihan
+            </a>
 
             <a href="{{ route('cabor.atlet.index') }}"
                class="block rounded-xl px-4 py-3 text-sm font-semibold
@@ -139,6 +144,7 @@
                     <nav class="absolute left-0 top-full z-50 mt-3 flex w-56 flex-col gap-3 rounded-xl bg-[#171717] p-4 text-sm text-white shadow-xl">
                         <a href="{{ route('dashboard.admin-cabor') }}">Dashboard</a>
                         <a href="{{ route('cabor.absensi.index') }}">Absensi QR & Selfie</a>
+                        <a href="{{ route('cabor.absensi.jadwal-latihan') }}">Atur Jadwal Latihan</a>
                         <a href="{{ route('cabor.atlet.index') }}">Data Atlet</a>
                         <a href="{{ route('cabor.pelatih.index') }}">Data Pelatih</a>
                         <a href="{{ route('cabor.pengurus.index') }}">Struktur Organisasi</a>

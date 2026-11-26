@@ -1,0 +1,71 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('attendance_sessions', function (Blueprint $table): void {
+            if (!Schema::hasColumn('attendance_sessions', 'schedule_slot_id')) {
+                $table->foreignId('schedule_slot_id')
+                    ->nullable()
+                    ->after('cabang_olahraga_id')
+                    ->constrained('attendance_schedule_slots')
+                    ->nullOnDelete();
+            }
+
+            if (!Schema::hasColumn('attendance_sessions', 'attendance_date')) {
+                $table->date('attendance_date')->nullable()->after('schedule_slot_id');
+            }
+
+            if (!Schema::hasColumn('attendance_sessions', 'attendance_mode')) {
+                $table->string('attendance_mode', 20)->nullable()->after('attendance_date');
+            }
+        });
+
+        $indexExists = collect(
+            \Illuminate\Support\Facades\DB::select("SHOW INDEX FROM attendance_sessions")
+        )->contains(
+            fn ($index) => $index->Key_name === 'attendance_sessions_schedule_slot_date_unique'
+        );
+
+        if (!$indexExists) {
+            Schema::table('attendance_sessions', function (Blueprint $table): void {
+                $table->unique(
+                    ['schedule_slot_id', 'attendance_date'],
+                    'attendance_sessions_schedule_slot_date_unique'
+                );
+            });
+        }
+    }
+
+    public function down(): void
+    {
+        Schema::table('attendance_sessions', function (Blueprint $table): void {
+            $indexes = collect(
+                \Illuminate\Support\Facades\DB::select("SHOW INDEX FROM attendance_sessions")
+            );
+
+            if ($indexes->contains(
+                fn ($index) => $index->Key_name === 'attendance_sessions_schedule_slot_date_unique'
+            )) {
+                $table->dropUnique('attendance_sessions_schedule_slot_date_unique');
+            }
+
+            if (Schema::hasColumn('attendance_sessions', 'schedule_slot_id')) {
+                $table->dropConstrainedForeignId('schedule_slot_id');
+            }
+
+            if (Schema::hasColumn('attendance_sessions', 'attendance_date')) {
+                $table->dropColumn('attendance_date');
+            }
+
+            if (Schema::hasColumn('attendance_sessions', 'attendance_mode')) {
+                $table->dropColumn('attendance_mode');
+            }
+        });
+    }
+};

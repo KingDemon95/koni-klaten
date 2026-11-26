@@ -27,7 +27,8 @@
                 ['label' => 'Agenda & Kejuaraan', 'route' => 'admin.agenda.index', 'active' => 'admin.agenda.*'],
                 ['label' => 'Persuratan', 'route' => 'admin.persuratan.index', 'active' => 'admin.persuratan.*'],
                 ['label' => 'Template Surat', 'route' => 'admin.templates.index', 'active' => 'admin.templates.*'],
-                ['label' => 'Absensi QR & Selfie', 'route' => 'admin.absensi.index', 'active' => 'admin.absensi.*'],
+                ['label' => 'Absensi QR & Selfie', 'route' => 'admin.absensi.index', 'active' => 'admin.absensi.index'],
+                ['label' => 'Atur Jadwal Absensi', 'route' => 'admin.absensi.jadwal-kerja', 'active' => 'admin.absensi.jadwal-kerja*'],
             ],
         ],
         [

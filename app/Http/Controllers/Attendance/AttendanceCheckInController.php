@@ -47,6 +47,7 @@ class AttendanceCheckInController extends Controller
 
         $attendanceAction = match (true) {
             ! $existingRecord => 'check_in',
+            $session->attendance_mode === 'training' => 'completed',
             ! $existingRecord->checked_out_at => 'check_out',
             default => 'completed',
         };
@@ -95,6 +96,14 @@ class AttendanceCheckInController extends Controller
             'attendance_action' => ['required', 'in:check_in,check_out'],
             'selfie_data' => ['required', 'string', 'max:2800000'],
         ]);
+
+        if (
+            $session->attendance_mode === 'training'
+            && $validated['attendance_action'] === 'check_out'
+        ) {
+            return redirect()->to($returnUrl)
+                ->with('error', 'Absensi latihan hanya memerlukan satu kali check-in.');
+        }
 
         $existingRecord = $session->records()
             ->where('user_id', $user->id)
@@ -195,30 +204,55 @@ class AttendanceCheckInController extends Controller
             throw $exception;
         }
 
-        $message = $action === 'check_in'
-            ? 'Check-in berhasil dicatat. Jangan lupa melakukan check-out setelah kegiatan selesai.'
-            : 'Check-out berhasil dicatat. Terima kasih sudah mengikuti kegiatan.';
+        $message = match (true) {
+            $session->attendance_mode === 'training'
+                => 'Kehadiran latihan berhasil dicatat. Terima kasih.',
+            $action === 'check_in'
+                => 'Check-in berhasil dicatat. Jangan lupa melakukan check-out setelah kegiatan selesai.',
+            default
+                => 'Check-out berhasil dicatat. Terima kasih sudah mengikuti kegiatan.',
+        };
 
         return redirect()->to($returnUrl)->with('success', $message);
     }
 
     private function resolveSession(string $token): AttendanceSession
     {
-        // Legacy rows without target_roles can still accept their old link.
-        // New and migrated sessions use the signed token generated for today.
-        $legacySession = AttendanceSession::query()->where('token', $token)->first();
+        $legacySession = AttendanceSession::query()
+            ->where('token', $token)
+            ->first();
+
         if ($legacySession && $legacySession->target_roles === null) {
             return $legacySession;
         }
 
-        $payload = AttendanceSession::decodeDailyScanToken($token);
-        abort_unless($payload, 404, 'QR Code tidak valid atau sudah berganti untuk hari ini.');
+        // Decode awal untuk memperoleh ID sesi.
+        // Tanda tangan diverifikasi kembali dengan tanggal yang benar.
+        $payload = AttendanceSession::decodeDailyScanToken(
+            $token,
+            \Carbon\Carbon::createFromFormat('Ymd', substr(
+                explode('.', $token)[1] ?? '',
+                0,
+                8
+            )) ?: now()
+        );
+
+        abort_unless($payload, 404, 'QR Code tidak valid.');
 
         $session = AttendanceSession::query()->findOrFail($payload['id']);
+
+        $tokenDate = in_array(
+            $session->attendance_mode,
+            ['work', 'training'],
+            true
+        ) && $session->attendance_date
+            ? $session->attendance_date
+            : now();
+
         abort_unless(
-            hash_equals($session->dailyScanToken(), $token),
+            hash_equals($session->dailyScanToken($tokenDate), $token),
             404,
-            'QR Code tidak valid atau sudah berganti untuk hari ini.',
+            'QR Code tidak valid atau tanggal sesi tidak sesuai.'
         );
 
         return $session;

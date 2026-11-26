@@ -266,6 +266,14 @@ Route::middleware(['auth', 'role:admin_koni|ketua_koni'])
     Route::get('absensi/record/{attendanceRecord}/selfie', [AttendanceSessionController::class, 'selfie'])->whereNumber('attendanceRecord')->name('absensi.selfie');
     Route::get('absensi/{attendanceSession}', [AttendanceSessionController::class, 'show'])->whereNumber('attendanceSession')->name('absensi.show');
 
+    Route::get('absensi/jadwal-kerja',
+        [\App\Http\Controllers\Attendance\AttendanceScheduleController::class, 'work']
+    )->name('absensi.jadwal-kerja');
+
+    Route::put('absensi/jadwal-kerja',
+        [\App\Http\Controllers\Attendance\AttendanceScheduleController::class, 'updateWork']
+    )->name('absensi.jadwal-kerja.update');
+
     $registerInventoryRoutes('manage');
 });
 
@@ -416,6 +424,14 @@ Route::middleware([
     Route::post('absensi/{attendanceSession}/tutup', [AttendanceSessionController::class, 'close'])->whereNumber('attendanceSession')->name('absensi.close');
     Route::get('absensi/record/{attendanceRecord}/selfie', [AttendanceSessionController::class, 'selfie'])->whereNumber('attendanceRecord')->name('absensi.selfie');
     Route::get('absensi/{attendanceSession}', [AttendanceSessionController::class, 'show'])->whereNumber('attendanceSession')->name('absensi.show');
+
+    Route::get('absensi/jadwal-latihan',
+        [\App\Http\Controllers\Attendance\AttendanceScheduleController::class, 'training']
+    )->name('absensi.jadwal-latihan');
+
+    Route::put('absensi/jadwal-latihan',
+        [\App\Http\Controllers\Attendance\AttendanceScheduleController::class, 'updateTraining']
+    )->name('absensi.jadwal-latihan.update');
 
     $registerInventoryRoutes('manage');
 });
