@@ -36,13 +36,34 @@
                 <span class="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">Login aktif</span>
             </div>
 
-            @if($attendanceAction === 'completed')
-                <div class="py-8 text-center">
-                    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl text-green-700">✓</div>
-                    <h3 class="mt-4 text-lg font-black">Absensi selesai</h3>
-                    <p class="mt-2 text-sm text-gray-500">Check-in tercatat {{ $existingRecord->checked_in_at->format('d/m/Y H:i:s') }}.</p>
-                    <p class="mt-1 text-sm text-gray-500">Check-out tercatat {{ $existingRecord->checked_out_at->format('d/m/Y H:i:s') }}.</p>
-                </div>
+        @if($attendanceAction === 'completed')
+            <div class="py-8 text-center">
+                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl text-green-700">✓</div>
+
+                <h3 class="mt-4 text-lg font-black">Absensi selesai</h3>
+
+                <p class="mt-2 text-sm text-gray-500">
+                    Check-in tercatat
+                    {{ $existingRecord->checked_in_at->format('d/m/Y H:i:s') }}.
+                </p>
+
+                @if($session->attendance_mode !== 'training')
+                    @if($existingRecord->checked_out_at)
+                        <p class="mt-1 text-sm text-gray-500">
+                            Check-out tercatat
+                            {{ $existingRecord->checked_out_at->format('d/m/Y H:i:s') }}.
+                        </p>
+                    @else
+                        <p class="mt-1 text-sm text-amber-600">
+                            Menunggu check-out.
+                        </p>
+                    @endif
+                @else
+                    <p class="mt-2 text-sm font-semibold text-green-700">
+                        Kehadiran latihan berhasil dicatat. Tidak diperlukan check-out.
+                    </p>
+                @endif
+            </div>
             @elseif(!$canRecord)
                 <div class="py-8 text-center">
                     <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-2xl text-amber-700">!</div>

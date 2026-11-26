@@ -80,3 +80,14 @@ Schedule::command('koni:scheduler-heartbeat')
     ->timezone(config('app.timezone', 'Asia/Jakarta'))
     ->withoutOverlapping(1)
     ->appendOutputTo(storage_path('logs/koni-scheduler.log'));
+
+// Generate absensi rutin setiap hari pukul 00.05 WIB.
+Schedule::command('koni:attendance-generate')
+    ->dailyAt('00:05')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping(10)
+    ->appendOutputTo(
+        storage_path('logs/koni-attendance-generate.log')
+    );
+
+// Generate absensi rutin setiap hari pukul 00.05 WIB.

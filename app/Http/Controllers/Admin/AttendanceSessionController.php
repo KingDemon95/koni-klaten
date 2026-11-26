@@ -480,12 +480,27 @@ class AttendanceSessionController extends Controller
 
     private function scanUrlFor(AttendanceSession $session): string
     {
-        $relativeUrl = route('attendance.check-in.show', $session->dailyScanToken(), false);
+        $tokenDate = in_array(
+            $session->attendance_mode,
+            ['work', 'training'],
+            true
+        ) && $session->attendance_date
+            ? $session->attendance_date
+            : now();
+
+        $token = $session->dailyScanToken($tokenDate);
+
+        $relativeUrl = route(
+            'attendance.check-in.show',
+            $token,
+            false
+        );
+
         $baseUrl = trim((string) config('app.attendance_base_url'));
 
         return $baseUrl !== ''
             ? rtrim($baseUrl, '/').'/'.ltrim($relativeUrl, '/')
-            : route('attendance.check-in.show', $session->dailyScanToken());
+            : route('attendance.check-in.show', $token);
     }
 
     private function routePrefix(User $user): string
