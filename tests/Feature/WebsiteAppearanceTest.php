@@ -232,7 +232,11 @@ class WebsiteAppearanceTest extends TestCase
 
         $this->assertSame($publishedPath, $setting->draft_config['pages']['home']['backdrop_path']);
         $this->assertNotNull($setting->published_at);
-        $this->get(route('public.home'))->assertOk()->assertSee($publishedPath)->assertSee('Website KONI Terpublikasi');
+        $this->get(route('public.home'))
+            ->assertOk()
+            ->assertSee($publishedPath)
+            ->assertSee('src="/storage/'.$publishedPath.'"', false)
+            ->assertSee('Website KONI Terpublikasi');
 
         $this->actingAs($admin)->get(route('dashboard.admin-koni'))
             ->assertOk()

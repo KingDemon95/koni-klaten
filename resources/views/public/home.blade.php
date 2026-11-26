@@ -8,9 +8,13 @@
 @if($copy['hero']['visible'] ?? true)
     @php($hero = $copy['hero'])
     <section class="public-page-hero website-managed-section relative isolate overflow-hidden" style="order: {{ $hero['order'] ?? 10 }}">
+        @if($websitePageBackdropUrl ?? null)
+            <img src="{{ $websitePageBackdropUrl }}" alt="" aria-hidden="true" class="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover" style="object-position: {{ $websitePageAppearance['background_position'] ?? 'center' }}">
+            <div class="pointer-events-none absolute inset-0 z-0" style="background: {{ $websitePageAppearance['hero_background_color'] ?? '#17191F' }}; opacity: {{ ((int) ($websitePageAppearance['overlay_opacity'] ?? 62)) / 100 }}"></div>
+        @endif
         <div class="absolute -right-24 -top-28 -z-10 h-96 w-96 rounded-full border-[38px] border-white/5"></div>
         <div class="absolute -bottom-36 right-[18%] -z-10 h-80 w-80 rounded-full border-[26px] border-white/10"></div>
-        <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 sm:py-24 lg:grid-cols-[1.15fr_.85fr] lg:px-8 lg:py-28">
+        <div class="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 sm:py-24 lg:grid-cols-[1.15fr_.85fr] lg:px-8 lg:py-28">
             <div>
                 @if($hero['eyebrow'] !== '')
                     <span class="website-hero-eyebrow inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[11px] font-bold tracking-[0.2em]">
