@@ -216,16 +216,19 @@
 
                                 <div class="flex items-center justify-center gap-2">
 
-                                    <a
+                                    @if(auth()->user()?->hasRole('admin_koni'))
+<a
                                         href="{{ route('admin.cabor.edit', $cabor) }}"
                                         class="rounded-lg bg-yellow-50 px-3 py-2 text-xs font-bold text-yellow-700 hover:bg-yellow-100">
 
                                         Edit
 
                                     </a>
+@endif
 
 
-                                    <form
+                                    @if(auth()->user()?->hasRole('admin_koni'))
+<form
                                         action="{{ route('admin.cabor.destroy', $cabor) }}"
                                         method="POST"
                                         onsubmit="return confirm('Yakin ingin menghapus cabor ini?')">
@@ -242,6 +245,7 @@
                                         </button>
 
                                     </form>
+@endif
 
                                 </div>
 

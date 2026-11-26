@@ -93,6 +93,7 @@ class StrukturOrganisasiController extends Controller
      */
     public function create(): View
     {
+        abort_unless(auth()->user()?->hasRole('admin_koni'), 403);
         $cabors = CabangOlahraga::where('status', 'aktif')
             ->orderBy('nama')
             ->get();
@@ -109,6 +110,7 @@ class StrukturOrganisasiController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        abort_unless(auth()->user()?->hasRole('admin_koni'), 403);
         $makeStaffAccount = $request->boolean('buat_akun_staff');
 
         $validated = $request->validate([
@@ -193,6 +195,7 @@ class StrukturOrganisasiController extends Controller
      */
     public function edit(Pengurus $struktur_organisasi): View
     {
+        abort_unless(auth()->user()?->hasRole('admin_koni'), 403);
         $struktur_organisasi->load('user');
         $cabors = CabangOlahraga::orderBy('nama')->get();
 
@@ -210,6 +213,7 @@ class StrukturOrganisasiController extends Controller
         Request $request,
         Pengurus $struktur_organisasi
     ): RedirectResponse {
+        abort_unless(auth()->user()?->hasRole('admin_koni'), 403);
         $struktur_organisasi->load('user');
         $existingUser = $struktur_organisasi->user;
         $makeStaffAccount = $request->boolean('buat_akun_staff') || $existingUser !== null;
@@ -325,6 +329,7 @@ class StrukturOrganisasiController extends Controller
     public function destroy(
         Pengurus $struktur_organisasi
     ): RedirectResponse {
+        abort_unless(auth()->user()?->hasRole('admin_koni'), 403);
 
         if ($struktur_organisasi->foto_path) {
             Storage::disk('public')->delete(

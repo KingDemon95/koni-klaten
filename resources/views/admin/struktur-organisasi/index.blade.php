@@ -5,6 +5,8 @@
 @section('heading', 'Struktur Organisasi')
 
 @section('content')
+    @php($canManageOrganization = auth()->user()?->hasRole('admin_koni'))
+
 
     <!-- HEADER -->
     <div class="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -19,12 +21,14 @@
             </p>
         </div>
 
+        @if($canManageOrganization)
         <a href="{{ route('admin.struktur-organisasi.create') }}"
            class="rounded-xl bg-[#E60012] px-5 py-3 text-center text-sm font-bold text-white shadow-lg shadow-red-100 hover:bg-red-700">
 
             + Tambah Pengurus
 
         </a>
+        @endif
 
     </div>
 
@@ -310,6 +314,7 @@
                             <!-- ACTION -->
                             <td class="px-5 py-4">
 
+                                @if($canManageOrganization)
                                 <div class="flex items-center justify-center gap-2">
 
                                     <a
@@ -340,6 +345,9 @@
                                     </form>
 
                                 </div>
+                                @else
+                                    <span class="text-xs text-gray-400">-</span>
+                                @endif
 
                             </td>
 
@@ -360,12 +368,14 @@
                                     Tambahkan pengurus KONI atau cabor pertama.
                                 </p>
 
+                                @if($canManageOrganization)
                                 <a href="{{ route('admin.struktur-organisasi.create') }}"
                                    class="mt-5 inline-block rounded-lg bg-[#E60012] px-5 py-3 text-xs font-bold text-white">
 
                                     Tambah Pengurus
 
                                 </a>
+                                @endif
 
                             </td>
                         </tr>

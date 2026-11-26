@@ -1,0 +1,11 @@
+diff --git a/routes/web.php b/routes/web.php
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -308,6 +308,7 @@ Route::middleware(['auth', 'role:sekretaris_koni'])
+     Route::get('surat', [SuratController::class, 'index'])->name('surat.index');
+     Route::get('surat/{surat}', [SuratController::class, 'show'])->name('surat.show');
++    Route::post('surat/{surat}/pesan', [SuratController::class, 'reply'])->name('surat.pesan.store');
+     Route::post('surat/{surat}/keputusan', [SuratController::class, 'decide'])->name('surat.keputusan');
+     Route::get('surat/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('surat.file');
+     Route::get('surat/{surat}/pesan/{message}/file', [SuratController::class, 'downloadMessageAttachment'])
+         ->whereNumber('message')->name('surat.pesan.file');

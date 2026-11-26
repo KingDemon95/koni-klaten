@@ -1,0 +1,19 @@
+PATCH NOTIFIKASI DIRECT LINK — V3
+
+Dibuat berdasarkan output grep aktual dari SuratController.php yang Anda kirim.
+
+1. Salin install_notification_patch_v3.py ke:
+   ~/koni-klaten-main-backup
+
+2. Jalankan:
+   cd ~/koni-klaten-main-backup
+   python3 install_notification_patch_v3.py
+
+3. Jika berhasil, uji sintaks:
+   docker exec koni-klaten-laravel.test-1 php -l app/Http/Controllers/SuratController.php
+
+4. Jalankan tes:
+   docker exec koni-klaten-laravel.test-1 php artisan test --filter=SuratMessagingTest
+
+Installer hanya mengubah app/Http/Controllers/SuratController.php dan membuat backup otomatis.
+Jika pola kode tidak sama persis dengan hasil audit, installer berhenti tanpa mengubah file.

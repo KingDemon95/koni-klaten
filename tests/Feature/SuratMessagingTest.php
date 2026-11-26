@@ -107,10 +107,10 @@ class SuratMessagingTest extends TestCase
             ->assertSeeText('sudah disampaikan');
 
         $notification = $secondCaborAdmin->unreadNotifications()->firstOrFail();
-        $this->assertSame('/pesan', $notification->data['url']);
+        $this->assertSame(route('cabor.surat.show', $surat, false), $notification->data['url']);
         $this->actingAs($secondCaborAdmin)
             ->post(route('notifications.open', $notification->id))
-            ->assertRedirect(route('messages.index'));
+            ->assertRedirect(route('cabor.surat.show', $surat));
 
         $this->actingAs($secondCaborAdmin)
             ->get(route('messages.index'))
@@ -181,4 +181,68 @@ class SuratMessagingTest extends TestCase
             ->get(route('cabor.surat.pesan.file', [$surat, $message]))
             ->assertNotFound();
     }
+    public function test_ketua_and_sekretaris_can_reply_without_changing_surat_decision_or_status_and_admin_master_cannot_reply(): void
+    {
+        $cabor = $this->cabor('Tenis Meja Pesan Pimpinan');
+        $creator = $this->user('admin_cabor', $cabor);
+        $staff = $this->user('staff_koni');
+        $ketua = $this->user('ketua_koni');
+        $sekretaris = $this->user('sekretaris_koni');
+        $admin = $this->user('admin_koni');
+        $surat = $this->surat($cabor, $creator, $staff);
+        $originalStatus = $surat->status;
+        $originalDecision = $surat->keputusan_admin;
+
+        $this->actingAs($ketua)
+            ->get(route('admin.persuratan.show', $surat))
+            ->assertOk()
+            ->assertSeeText('Balas percakapan sebagai Ketua KONI');
+
+        $this->actingAs($ketua)
+            ->post(route('admin.persuratan.pesan.store', $surat), [
+                'body' => 'Catatan Ketua untuk tindak lanjut surat.',
+            ])
+            ->assertRedirect(route('admin.persuratan.show', $surat));
+
+        $this->assertDatabaseHas('surat_messages', [
+            'surat_id' => $surat->id,
+            'sender_id' => $ketua->id,
+            'sender_role' => 'ketua_koni',
+            'message_type' => SuratMessage::TYPE_BALASAN,
+            'body' => 'Catatan Ketua untuk tindak lanjut surat.',
+        ]);
+
+        $this->actingAs($sekretaris)
+            ->get(route('sekretaris.surat.show', $surat))
+            ->assertOk()
+            ->assertSeeText('Balas percakapan sebagai Sekretaris KONI');
+
+        $this->actingAs($sekretaris)
+            ->post(route('sekretaris.surat.pesan.store', $surat), [
+                'body' => 'Catatan Sekretaris untuk tindak lanjut surat.',
+                'attachment' => UploadedFile::fake()->create('catatan-sekretaris.pdf', 20, 'application/pdf'),
+            ])
+            ->assertRedirect(route('sekretaris.surat.show', $surat));
+
+        $this->assertDatabaseHas('surat_messages', [
+            'surat_id' => $surat->id,
+            'sender_id' => $sekretaris->id,
+            'sender_role' => 'sekretaris_koni',
+            'message_type' => SuratMessage::TYPE_BALASAN,
+            'body' => 'Catatan Sekretaris untuk tindak lanjut surat.',
+            'attachment_original_name' => 'catatan-sekretaris.pdf',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.persuratan.pesan.store', $surat), [
+                'body' => 'Admin master tidak boleh mengirim balasan.',
+            ])
+            ->assertForbidden();
+
+        $surat->refresh();
+        $this->assertSame($originalStatus, $surat->status);
+        $this->assertSame($originalDecision, $surat->keputusan_admin);
+        $this->assertSame(2, $surat->messages()->where('message_type', SuratMessage::TYPE_BALASAN)->count());
+    }
+
 }

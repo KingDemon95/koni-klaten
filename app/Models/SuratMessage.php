@@ -46,7 +46,7 @@ class SuratMessage extends Model
     {
         return match ($this->message_type) {
             self::TYPE_DISPOSISI => 'Disposisi Staff',
-            self::TYPE_BALASAN => 'Balasan Cabor',
+            self::TYPE_BALASAN => 'Balasan',
             default => 'Pesan',
         };
     }

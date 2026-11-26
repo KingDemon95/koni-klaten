@@ -1,0 +1,54 @@
+PATCH KEAMANAN ROLE KONI KLATEN
+================================
+
+Tujuan
+------
+Memasang pemeriksaan otorisasi di controller, bukan hanya menyembunyikan menu.
+
+Aturan:
+- Cabang Olahraga: hanya Admin KONI yang dapat create/store/edit/update/destroy.
+- Struktur Organisasi: hanya Admin KONI yang dapat create/store/edit/update/destroy.
+- Master Data: seluruh endpoint hanya Admin KONI.
+- Endpoint index Cabang Olahraga dan Struktur Organisasi tetap mengikuti middleware route yang sudah ada.
+
+PENTING
+-------
+1. Jalankan dari root proyek: ~/koni-klaten-main-backup
+2. Patch membuat backup file otomatis sebelum menulis perubahan.
+3. Patch ini tidak mengubah routes/web.php, database, tampilan, atau fitur persuratan.
+4. Ketua KONI tetap dapat melihat daftar selama middleware route yang ada mengizinkan.
+5. Jalankan pengujian setelah instalasi. Jangan deploy sebelum seluruh tes lulus.
+
+CARA MEMASANG
+-------------
+Ekstrak ZIP, lalu dari root proyek jalankan:
+
+python3 install_role_security_patch.py
+
+PEMERIKSAAN SINTAKS
+-------------------
+docker exec koni-klaten-laravel.test-1 php -l app/Http/Controllers/Admin/CabangOlahragaController.php
+docker exec koni-klaten-laravel.test-1 php -l app/Http/Controllers/Admin/StrukturOrganisasiController.php
+docker exec koni-klaten-laravel.test-1 php -l app/Http/Controllers/Admin/CustomFieldController.php
+
+BERSIHKAN CACHE
+---------------
+docker exec koni-klaten-laravel.test-1 php artisan optimize:clear
+
+PENGUJIAN
+---------
+Jalankan seluruh test yang relevan:
+
+docker exec koni-klaten-laravel.test-1 php artisan test
+
+Kemudian uji manual:
+- Login Admin KONI: tambah/edit/hapus Cabang Olahraga harus tetap bisa.
+- Login Ketua KONI: daftar Cabang Olahraga dan Struktur Organisasi boleh dibuka; URL create/edit harus menghasilkan HTTP 403.
+- Login Ketua KONI: URL Master Data harus menghasilkan HTTP 403.
+- Login Sekretaris: pastikan akses tetap sesuai middleware sekretaris dan tidak mendapat akses ke route admin.
+
+Catatan
+-------
+Installer memasang guard langsung pada method controller berdasarkan struktur kode
+yang diberikan. Jika struktur file lokal berbeda, installer berhenti pada pola
+yang tidak cocok dan tidak boleh dianggap berhasil.

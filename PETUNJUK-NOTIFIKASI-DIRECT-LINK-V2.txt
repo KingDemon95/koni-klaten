@@ -1,0 +1,20 @@
+PATCH NOTIFIKASI DIRECT LINK — V2
+
+Installer V1 berhenti karena validasi pola WorkflowNotifier terlalu sempit.
+V2 memisahkan URL berdasarkan role penerima.
+
+Jalankan dari WSL:
+  cd ~/koni-klaten-main-backup
+  python3 install_notification_patch_v2.py
+
+Installer:
+- memeriksa pola kode sebelum menulis;
+- berhenti tanpa mengubah file bila pola tidak cocok;
+- membuat backup SuratController.php;
+- mengubah hanya app/Http/Controllers/SuratController.php.
+
+Setelah berhasil:
+  docker exec koni-klaten-laravel.test-1 php artisan view:clear
+  docker exec koni-klaten-laravel.test-1 php artisan test --filter=SuratMessagingTest
+
+Lalu uji notifikasi dengan akun Staff dan Admin Cabor serta balasan Cabor/Pimpinan.

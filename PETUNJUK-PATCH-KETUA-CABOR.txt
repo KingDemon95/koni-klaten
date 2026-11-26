@@ -1,0 +1,33 @@
+PATCH KETUA KONI — IZIN MEMBUAT CABANG OLAHRAGA
+
+Temuan dari LeadershipRolesTest:
+test_ketua_can_manage_organization_data_but_cannot_manage_user_accounts
+secara eksplisit mengharuskan Ketua KONI dapat POST ke admin.cabor.store,
+dan proses tersebut membuat akun admin_cabor untuk cabang terkait.
+
+Patch ini hanya mengubah guard di:
+- CabangOlahragaController::create()
+- CabangOlahragaController::store()
+
+Aturan setelah patch:
+- Admin KONI dan Ketua KONI boleh membuka form tambah dan membuat Cabor.
+- Hanya Admin KONI yang boleh edit, update, dan delete Cabor.
+- Manajemen Pengguna umum tetap dibatasi oleh route/otorisasi yang sudah ada.
+- Master Data tetap khusus Admin KONI.
+- Tidak mengubah controller Struktur Organisasi atau persuratan karena test yang diberikan belum membuktikan hak CRUD Ketua pada bagian tersebut.
+
+CARA:
+1. Ekstrak install_ketua_cabor_patch.py ke root proyek.
+2. Jalankan:
+   cd ~/koni-klaten-main-backup
+   python3 install_ketua_cabor_patch.py
+
+Installer membuat backup otomatis dan berhenti tanpa mengubah file jika pola tidak cocok.
+
+Lalu:
+docker exec koni-klaten-laravel.test-1 php -l app/Http/Controllers/Admin/CabangOlahragaController.php
+docker exec koni-klaten-laravel.test-1 php artisan optimize:clear
+docker exec koni-klaten-laravel.test-1 php artisan test --filter=LeadershipRolesTest
+docker exec koni-klaten-laravel.test-1 php artisan test --filter=SuratMessagingTest
+
+Jangan deploy sebelum semua pengujian terkait lulus.

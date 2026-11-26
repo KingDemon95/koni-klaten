@@ -1,0 +1,17 @@
+PATCH 02 — INSTALLER NAVIGASI ADMIN
+
+1. Ekstrak ZIP di komputer.
+2. Salin seluruh isi folder hasil ekstrak ke:
+   ~/koni-klaten-main-backup
+   (atau buka terminal WSL di folder tersebut dan pastikan ketiga file ada di root proyek)
+3. Jalankan:
+   cd ~/koni-klaten-main-backup
+   python3 install_nav_patch.py
+4. Jika berhasil, jalankan:
+   docker exec koni-klaten-laravel.test-1 php artisan view:clear
+5. Buka dashboard Admin dan Ketua untuk memeriksa navigasi.
+
+Installer membuat backup otomatis dengan akhiran .backup-TANGGAL-JAM sebelum mengganti file.
+Jika struktur file tidak cocok, installer berhenti tanpa mengubah file.
+Hanya resources/views/admin/partials/nav-links.blade.php yang diganti.
+Tidak mengubah route, database, controller, maupun halaman publik.

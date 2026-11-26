@@ -1,0 +1,21 @@
+PATCH FIX — ROUTE BALASAN SEKRETARIS
+
+Perbaikan:
+Menambahkan route POST sekretaris.surat.pesan.store yang dipanggil oleh form balasan di resources/views/surat/show.blade.php.
+
+Cara menerapkan:
+1. Letakkan file .patch di root proyek:
+   ~/koni-klaten-main-backup
+2. Jalankan:
+   git apply --check KONI-KLATEN-PATCH-FIX-ROUTE-SEKRETARIS.patch
+   git apply KONI-KLATEN-PATCH-FIX-ROUTE-SEKRETARIS.patch
+3. Bersihkan cache route dan view:
+   docker exec koni-klaten-laravel.test-1 php artisan route:clear
+   docker exec koni-klaten-laravel.test-1 php artisan view:clear
+4. Pastikan route tersedia:
+   docker exec koni-klaten-laravel.test-1 php artisan route:list --name=sekretaris.surat.pesan.store
+5. Jalankan tes:
+   docker exec koni-klaten-laravel.test-1 php artisan test --filter=SuratMessagingTest
+
+Patch ini hanya menambahkan satu route di dalam grup sekretaris yang sudah dibatasi middleware role:sekretaris_koni.
+Tidak mengubah database atau tampilan publik.

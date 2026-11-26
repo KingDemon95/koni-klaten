@@ -1,0 +1,22 @@
+PATCH PERBAIKAN URL NOTIFIKASI PESURATAN
+
+Tujuan:
+- Notifikasi disposisi Staff kepada Admin Cabor membuka detail surat pada area Cabor.
+- Notifikasi balasan Admin Cabor kepada Staff membuka detail surat pada area Staff.
+- Notifikasi balasan Ketua/Sekretaris kepada Staff dan Admin Cabor memakai URL sesuai role penerima.
+- Tidak mengubah tampilan website publik, struktur database, atau isi pesan.
+
+Cara pemasangan:
+1. Ekstrak ZIP.
+2. Salin install_notification_patch.py ke root proyek: ~/koni-klaten-main-backup
+3. Jalankan:
+   cd ~/koni-klaten-main-backup
+   python3 install_notification_patch.py
+4. Jika berhasil, jalankan:
+   docker exec koni-klaten-laravel.test-1 php artisan test --filter=SuratMessagingTest
+   docker exec koni-klaten-laravel.test-1 php artisan route:list --path=surat
+
+Catatan:
+- Installer membuat backup SuratController.php otomatis.
+- Jika struktur kode tidak cocok, installer berhenti tanpa mengubah file.
+- Jangan jalankan installer lebih dari sekali tanpa memeriksa hasilnya.

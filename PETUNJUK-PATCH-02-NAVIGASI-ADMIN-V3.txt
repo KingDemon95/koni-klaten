@@ -1,0 +1,18 @@
+PATCH 02 V3 — PENYEDERHANAAN NAVIGASI ADMIN KONI
+
+File yang diubah:
+resources/views/admin/partials/nav-links.blade.php
+
+Penerapan:
+1. Letakkan file patch ini di root proyek ~/koni-klaten-main-backup.
+2. Jalankan:
+   git apply --check KONI-KLATEN-PATCH-02-NAVIGASI-ADMIN-V3.patch
+3. Jika pemeriksaan sukses:
+   git apply KONI-KLATEN-PATCH-02-NAVIGASI-ADMIN-V3.patch
+4. Bersihkan cache view:
+   docker exec koni-klaten-laravel.test-1 php artisan view:clear
+5. Periksa sidebar Admin dan Ketua, lalu jalankan tes aplikasi.
+
+Jika git apply --check gagal, jangan paksa. Kirim output perintah dan isi file terkini.
+
+Patch ini hanya mengubah partial navigasi admin. Tidak mengubah routes, database, controller, atau halaman publik.

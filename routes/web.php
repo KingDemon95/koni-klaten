@@ -231,6 +231,8 @@ Route::middleware(['auth', 'role:admin_koni|ketua_koni'])
     Route::get('persuratan/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('persuratan.file');
     Route::get('persuratan/{surat}/pesan/{message}/file', [SuratController::class, 'downloadMessageAttachment'])
         ->whereNumber('message')->name('persuratan.pesan.file');
+    Route::post('persuratan/{surat}/pesan', [SuratController::class, 'reply'])
+        ->middleware('role:ketua_koni')->name('persuratan.pesan.store');
 
     // Alias URL lama dipertahankan agar tautan yang sudah pernah digunakan tetap berfungsi.
     Route::get('surat', [SuratController::class, 'index'])->name('surat.index');
@@ -239,6 +241,7 @@ Route::middleware(['auth', 'role:admin_koni|ketua_koni'])
     Route::get('surat/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('surat.file');
     Route::get('surat/{surat}/pesan/{message}/file', [SuratController::class, 'downloadMessageAttachment'])
         ->whereNumber('message')->name('surat.pesan.file');
+    Route::post('surat/{surat}/pesan', [SuratController::class, 'reply'])->name('surat.pesan.store');
 
     Route::get('templates-surat', [TemplateSuratController::class, 'index'])->name('templates.index');
     Route::post('templates-surat', [TemplateSuratController::class, 'store'])->name('templates.store');
@@ -308,6 +311,7 @@ Route::middleware(['auth', 'role:sekretaris_koni'])
 
     Route::get('surat', [SuratController::class, 'index'])->name('surat.index');
     Route::get('surat/{surat}', [SuratController::class, 'show'])->name('surat.show');
+    Route::post('surat/{surat}/pesan', [SuratController::class, 'reply'])->name('surat.pesan.store');
     Route::post('surat/{surat}/keputusan', [SuratController::class, 'decide'])->name('surat.keputusan');
     Route::get('surat/{surat}/file/{jenis}', [SuratController::class, 'download'])->name('surat.file');
     Route::get('surat/{surat}/pesan/{message}/file', [SuratController::class, 'downloadMessageAttachment'])
