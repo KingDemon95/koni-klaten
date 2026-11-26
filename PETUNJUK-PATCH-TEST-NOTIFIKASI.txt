@@ -1,0 +1,17 @@
+PATCH TEST NOTIFIKASI — UPDATE EXPECTATION
+
+Installer ini memperbarui dua assertion lama yang masih mengharapkan /pesan.
+Perilaku aplikasi saat ini diarahkan ke halaman detail surat Cabor.
+
+1. Salin install_notification_test_patch.py ke root proyek:
+   ~/koni-klaten-main-backup
+
+2. Jalankan:
+   cd ~/koni-klaten-main-backup
+   python3 install_notification_test_patch.py
+
+3. Jalankan pengujian:
+   docker exec koni-klaten-laravel.test-1 php artisan test --filter=SuratMessagingTest
+
+Installer membuat backup otomatis dan hanya mengubah tests/Feature/SuratMessagingTest.php.
+Jika dua pola assertion tidak cocok, installer berhenti tanpa mengubah file.

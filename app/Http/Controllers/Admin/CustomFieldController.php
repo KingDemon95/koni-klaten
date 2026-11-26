@@ -14,6 +14,7 @@ class CustomFieldController extends Controller
 {
     public function index(): View
     {
+        abort_unless(auth()->user()?->hasRole('admin_koni'), 403);
         return view('admin.master-data.index', [
             'fields' => CustomField::query()
                 ->orderBy('entity_type')
@@ -25,6 +26,7 @@ class CustomFieldController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless(auth()->user()?->hasRole('admin_koni'), 403);
         $validated = $request->validate([
             'entity_type' => ['required', 'in:atlet,pelatih'],
             'label' => ['required', 'string', 'max:120'],
@@ -69,6 +71,7 @@ class CustomFieldController extends Controller
 
     public function update(Request $request, CustomField $customField): RedirectResponse
     {
+        abort_unless(auth()->user()?->hasRole('admin_koni'), 403);
         $validated = $request->validate([
             'label' => ['required', 'string', 'max:120'],
             'type' => ['required', 'in:text,textarea,number,date,email,url,select,checkbox'],
@@ -95,6 +98,7 @@ class CustomFieldController extends Controller
 
     public function destroy(CustomField $customField): RedirectResponse
     {
+        abort_unless(auth()->user()?->hasRole('admin_koni'), 403);
         $customField->update(['is_active' => false]);
 
         return redirect()->route('admin.master-data.index')

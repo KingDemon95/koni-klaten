@@ -1,0 +1,13 @@
+PATCH 02 — NAVIGASI ADMIN KONI (FORMAT DIFF DIPERBAIKI)
+
+1. Simpan patch di root proyek ~/koni-klaten-main-backup.
+2. Jalankan:
+   git apply --check KONI-KLATEN-PATCH-02-NAVIGASI-ADMIN.patch
+3. Jika check berhasil:
+   git apply KONI-KLATEN-PATCH-02-NAVIGASI-ADMIN.patch
+4. Bersihkan cache:
+   docker exec koni-klaten-laravel.test-1 php artisan view:clear
+5. Periksa dashboard Admin dan Ketua, lalu jalankan pengujian aplikasi.
+
+Patch mengganti hanya resources/views/admin/partials/nav-links.blade.php.
+Tidak mengubah route, database, atau file website publik.

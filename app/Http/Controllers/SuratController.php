@@ -276,7 +276,7 @@ class SuratController extends Controller
             (int) $surat->cabang_olahraga_id,
             'Disposisi revisi dari Staff KONI',
             'Surat "'.$surat->perihal.'" perlu diperbaiki. Catatan Staff: '.$validated['catatan_staff'],
-            route('messages.index', [], false),
+            route('cabor.surat.show', $surat, false),
             'persuratan',
         );
 
@@ -539,7 +539,7 @@ class SuratController extends Controller
             (int) $surat->cabang_olahraga_id,
             'Disposisi surat dari Staff KONI',
             'Hasil keputusan untuk surat "'.$surat->perihal.'" sudah disampaikan. Buka detail surat untuk membaca disposisi dan memberikan balasan.',
-            route('messages.index', [], false),
+            route('cabor.surat.show', $surat, false),
             'persuratan',
         );
 
@@ -599,7 +599,7 @@ class SuratController extends Controller
             (int) $surat->cabang_olahraga_id,
             'Pesan baru dari Staff KONI',
             'Staff KONI mengirim pesan untuk surat "'.$surat->perihal.'".',
-            route('messages.index', [], false),
+            route('cabor.surat.show', $surat, false),
             'persuratan',
         );
 
@@ -608,24 +608,41 @@ class SuratController extends Controller
 
     public function reply(Request $request, Surat $surat): RedirectResponse
     {
-        abort_unless($this->routePrefix($request) === 'cabor', 403);
+        $prefix = $this->routePrefix($request);
+        $user = $request->user();
+        $isCabor = $prefix === 'cabor' && $user->hasRole('admin_cabor');
+        $isKetua = $prefix === 'admin' && $user->hasRole('ketua_koni');
+        $isSekretaris = $prefix === 'sekretaris' && $user->hasRole('sekretaris_koni');
+
+        // Route admin juga dapat diakses Admin Master untuk fungsi lain.
+        // Balasan percakapan secara eksplisit hanya boleh dilakukan Ketua.
+        abort_unless($isCabor || $isKetua || $isSekretaris, 403);
+
         $surat = $this->findScopedSurat($request, $surat);
-        abort_unless(in_array($surat->status, [
-            Surat::STATUS_REVISI,
-            Surat::STATUS_DITERIMA,
-            Surat::STATUS_DITOLAK,
-        ], true), 422);
+        if ($isCabor) {
+            abort_unless(in_array($surat->status, [
+                Surat::STATUS_REVISI,
+                Surat::STATUS_DITERIMA,
+                Surat::STATUS_DITOLAK,
+            ], true), 422);
+        }
 
         $validated = $request->validate([
             'body' => ['nullable', 'string', 'max:3000', 'required_without:attachment'],
             'attachment' => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240', 'required_without:body'],
         ]);
 
+        $senderRole = $isCabor ? 'admin_cabor' : ($isKetua ? 'ketua_koni' : 'sekretaris_koni');
+        $senderLabel = match ($senderRole) {
+            'admin_cabor' => 'Admin Cabor',
+            'ketua_koni' => 'Ketua KONI',
+            'sekretaris_koni' => 'Sekretaris KONI',
+        };
         $path = null;
         $originalName = null;
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
-            $path = $file->store('surat/balasan-cabor', 'local');
+            $path = $file->store('surat/balasan-'.$senderRole, 'local');
             $originalName = $file->getClientOriginalName();
         }
 
@@ -635,10 +652,10 @@ class SuratController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($surat, $request, $body, $path, $originalName): void {
+            DB::transaction(function () use ($surat, $request, $body, $path, $originalName, $senderRole, $senderLabel): void {
                 $surat->messages()->create([
                     'sender_id' => $request->user()->id,
-                    'sender_role' => 'admin_cabor',
+                    'sender_role' => $senderRole,
                     'message_type' => SuratMessage::TYPE_BALASAN,
                     'body' => $body !== '' ? $body : null,
                     'attachment_path' => $path,
@@ -648,10 +665,10 @@ class SuratController extends Controller
                 $this->recordActivity(
                     $surat,
                     $request,
-                    'balasan_cabor_dikirim',
+                    'balasan_'.$senderRole.'_dikirim',
                     $surat->status,
                     $surat->status,
-                    $body !== '' ? $body : 'Admin Cabor mengunggah dokumen balasan.'
+                    $body !== '' ? $body : $senderLabel.' mengunggah dokumen balasan.'
                 );
             });
         } catch (Throwable $exception) {
@@ -662,25 +679,29 @@ class SuratController extends Controller
             throw $exception;
         }
 
-        if ($surat->staff) {
-            WorkflowNotifier::toUser(
-                $surat->staff,
-                'Balasan baru dari Admin Cabor',
-                'Admin Cabor mengirim komentar atau dokumen balasan untuk surat "'.$surat->perihal.'".',
-                route('messages.index', [], false),
-                'persuratan',
-            );
+        $notificationTitle = 'Balasan baru dari '.$senderLabel;
+        $notificationBody = $senderLabel.' mengirim komentar atau dokumen balasan untuk surat "'.$surat->perihal.'".';
+        $staffNotificationUrl = route('staff.surat.show', $surat, false);
+        $caborNotificationUrl = route('cabor.surat.show', $surat, false);
+
+        if ($isCabor) {
+            if ($surat->staff) {
+                WorkflowNotifier::toUser($surat->staff, $notificationTitle, $notificationBody, $staffNotificationUrl, 'persuratan', $user->id);
+            } else {
+                WorkflowNotifier::toRole('staff_koni', $notificationTitle, $notificationBody, $staffNotificationUrl, 'persuratan', null, $user->id);
+            }
         } else {
-            WorkflowNotifier::toRole(
-                'staff_koni',
-                'Balasan baru dari Admin Cabor',
-                'Admin Cabor mengirim komentar atau dokumen balasan untuk surat "'.$surat->perihal.'".',
-                route('messages.index', [], false),
-                'persuratan',
-            );
+            WorkflowNotifier::toUser($surat->staff, $notificationTitle, $notificationBody, $staffNotificationUrl, 'persuratan', $user->id);
+            WorkflowNotifier::toRole('admin_cabor', $notificationTitle, $notificationBody, $caborNotificationUrl, 'persuratan', $surat->cabang_olahraga_id, $user->id);
         }
 
-        return redirect()->route('cabor.surat.show', $surat)->with('success', 'Balasan berhasil dikirim kepada Staff KONI.');
+        $redirectRoute = match ($prefix) {
+            'admin' => 'admin.persuratan.show',
+            'sekretaris' => 'sekretaris.surat.show',
+            default => 'cabor.surat.show',
+        };
+
+        return redirect()->route($redirectRoute, $surat)->with('success', 'Balasan berhasil dikirim.');
     }
 
     public function downloadMessageAttachment(

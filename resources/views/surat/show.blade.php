@@ -25,6 +25,9 @@
         \App\Models\Surat::STATUS_DITERIMA,
         \App\Models\Surat::STATUS_DITOLAK,
     ], true);
+    $canLeadershipReply = auth()->user()->hasAnyRole(['ketua_koni', 'sekretaris_koni'])
+        && in_array($prefix, ['admin', 'sekretaris'], true);
+    $leadershipReplyRole = auth()->user()->hasRole('ketua_koni') ? 'Ketua KONI' : 'Sekretaris KONI';
     $decisionRoute = $routeBase.'.keputusan';
     $decisionRoleLabel = match ($surat->decision_by_role) {
         'ketua_koni' => 'Ketua KONI',
@@ -181,6 +184,19 @@
                         <input id="cabor_message_attachment" type="file" name="attachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full rounded-lg border border-gray-300 p-2 text-xs">
                         <p class="text-xs text-gray-500">Isi komentar atau unggah dokumen. Salah satu wajib diisi. Maksimal 10 MB.</p>
                         <button class="w-full rounded-lg bg-[#E60012] px-4 py-3 text-sm font-bold text-white hover:bg-red-700">Kirim Balasan ke Staff KONI</button>
+                    </form>
+                @endif
+
+                @if ($canLeadershipReply)
+                    <form method="POST" action="{{ route($routeBase.'.pesan.store', $surat) }}" enctype="multipart/form-data" class="mt-5 space-y-3 border-t border-gray-100 pt-5">
+                        @csrf
+                        <h4 class="font-black text-gray-900">Balas percakapan sebagai {{ $leadershipReplyRole }}</h4>
+                        <label for="leadership_message_body" class="block text-sm font-bold text-gray-700">Komentar / arahan</label>
+                        <textarea id="leadership_message_body" name="body" rows="3" maxlength="3000" class="w-full rounded-lg border-gray-300 text-sm" placeholder="Tulis balasan atau arahan terkait surat ini"></textarea>
+                        <label for="leadership_message_attachment" class="block text-sm font-bold text-gray-700">Lampiran (opsional)</label>
+                        <input id="leadership_message_attachment" type="file" name="attachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full rounded-lg border border-gray-300 p-2 text-xs">
+                        <p class="text-xs text-gray-500">Isi komentar atau unggah dokumen. Salah satu wajib diisi. Maksimal 10 MB. Balasan tidak mengubah keputusan maupun status surat.</p>
+                        <button class="w-full rounded-lg bg-[#E60012] px-4 py-3 text-sm font-bold text-white hover:bg-red-700">Kirim Balasan</button>
                     </form>
                 @endif
             </article>

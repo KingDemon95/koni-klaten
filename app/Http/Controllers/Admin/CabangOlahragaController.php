@@ -64,6 +64,7 @@ class CabangOlahragaController extends Controller
      */
     public function create(): View
     {
+        abort_unless(auth()->user()?->hasAnyRole(['admin_koni', 'ketua_koni']), 403);
         return view('admin.cabor.create', [
             'cabor' => new CabangOlahraga(),
             'adminAccount' => null,
@@ -76,6 +77,7 @@ class CabangOlahragaController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        abort_unless(auth()->user()?->hasAnyRole(['admin_koni', 'ketua_koni']), 403);
         $validated = $request->validate([
             'nama' => [
                 'required',
@@ -141,6 +143,7 @@ class CabangOlahragaController extends Controller
      */
     public function edit(CabangOlahraga $cabor): View
     {
+        abort_unless(auth()->user()?->hasRole('admin_koni'), 403);
         $adminAccount = User::query()
             ->where('cabang_olahraga_id', $cabor->id)
             ->whereHas('roles', fn ($query) => $query->where('name', 'admin_cabor'))
@@ -157,6 +160,7 @@ class CabangOlahragaController extends Controller
         Request $request,
         CabangOlahraga $cabor
     ): RedirectResponse {
+        abort_unless(auth()->user()?->hasRole('admin_koni'), 403);
 
         $existingAdminAccount = User::query()
             ->where('cabang_olahraga_id', $cabor->id)
@@ -263,6 +267,7 @@ class CabangOlahragaController extends Controller
      */
     public function destroy(CabangOlahraga $cabor): RedirectResponse
     {
+        abort_unless(auth()->user()?->hasRole('admin_koni'), 403);
         if (
             $cabor->atlets()->exists() ||
             $cabor->pelatihs()->exists() ||
